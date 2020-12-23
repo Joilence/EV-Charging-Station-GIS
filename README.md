@@ -13,9 +13,10 @@ This is a GIS application that supports the exploration of EV charging stations 
 # Datasets
 
 - [Ladesäulen in Deutschland | Esri Deutschland Open Data Portal](https://opendata-esri-de.opendata.arcgis.com/datasets/esri-de-content::lades%C3%A4ulen-in-deutschland)
-- [Michelen Restaurant scores]()
+- [Michelin Restaurant scores]()
 - [OpenStreetMap Germany](https://download.geofabrik.de/europe/germany-latest.osm.pbf)
-NOTE: OSM data must be manually loaded on the database. Please use osm2pgsql to perform this operation.
+
+NOTE: OSM data must be manually loaded on the database. You can use [osm2pgsql](https://osm2pgsql.org) to perform this operation.
 On Windows 
 ```bash
 .\osm2pgsql.exe --database gis_db --host localhost --port 25432 --username gis_user --password --create --slim --drop --latlong --hstore-all germany-latest.osm.pbf
