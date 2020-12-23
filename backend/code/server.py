@@ -1,4 +1,4 @@
-from flask import Flask, jsonify
+from flask import Flask, jsonify, request
 from flask_cors import CORS
 import json
 from time import sleep
@@ -8,7 +8,6 @@ from psycopg2.extras import RealDictCursor
 
 app = Flask(__name__)
 CORS(app)
-
 
 sleep(5)
 
@@ -62,33 +61,17 @@ CREATE TABLE restaurants(
 
 with psycopg2.connect(host="database", port=5432, dbname="gis_db", user="gis_user", password="gis_pass") as conn:
     with conn.cursor() as cursor:
-        
         cursor.execute(delStations)
         cursor.execute(createStations)
         with open('./data/charging_stations.csv', 'r') as f:
-            cursor.copy_from(f, 'charging_stations', sep='|',)
+            cursor.copy_from(f, 'charging_stations', sep='|', )
 
         cursor.execute(delRestaurants)
         cursor.execute(createRestaurants)
         with open('./data/restaurant_score.csv', 'r') as f:
-            cursor.copy_from(f, 'restaurants', sep='|',)
-
-        
-
-
-
+            cursor.copy_from(f, 'restaurants', sep='|', )
 
     conn.commit()
-
-
-
-
-
-
-
-
-
-
 
 
 @app.route('/numbars', methods=["GET", "POST"])
@@ -117,13 +100,8 @@ FROM cities c LEFT JOIN bars b ON ST_Contains(c.geom, b.geom)
 GROUP BY c.osm_id, c.name, c.geom
 """
 
-    # get results
-    with psycopg2.connect(host="database", port=5432, dbname="gis_db", user="gis_user", password="gis_pass") as conn:
-        with conn.cursor(cursor_factory=RealDictCursor) as cursor:
-            cursor.execute(query)
-            results = cursor.fetchall()
+    results = execQuery(query)
 
-    
     # convert results to a GeoJSON
     geojsons = []
     for result in results:
@@ -141,3 +119,52 @@ GROUP BY c.osm_id, c.name, c.geom
     return jsonify({
         "type": "FeatureCollection", "features": geojsons
     }), 200
+
+
+#####################################################################################
+######################## Distance Functions #########################################
+#####################################################################################
+
+@app.route('/distance', methods=["POST"])
+def distanceQuery():
+    geometry1 = request.json["geom1"]
+    geometry2 = request.json["geom2"]
+    return str(calculateDistance(geometry1, geometry2))
+
+def calculateDistance(geometry1, geometry2):
+    query = f"""
+        SELECT ST_Distance(
+    		ST_GeomFromText('{geometry1}',4326),
+    		ST_GeomFromText('{geometry2}', 4326),
+    		true
+    	);
+    """
+    return execDistanceQuery(query)
+
+def calculateDistanceGeography(geography1, geography2):
+    query = f"""
+    SELECT ST_Distance(
+		ST_GeographyFromText('{geography1}'),
+		ST_GeographyFromText('{geography2}'), 
+		true
+	);
+"""
+    return execDistanceQuery(query)
+
+def execDistanceQuery(query):
+    return execQuery(query)[0]["st_distance"]
+
+
+#####################################################################################
+######################## General Util Functions #####################################
+#####################################################################################
+
+def execQuery(query):
+    # get results
+    with psycopg2.connect(host="database", port=5432, dbname="gis_db", user="gis_user", password="gis_pass") as conn:
+        with conn.cursor(cursor_factory=RealDictCursor) as cursor:
+            cursor.execute(query)
+            return cursor.fetchall()
+
+def latLongToGeometry(lat, long):
+    return f'POINT({lat} {long})'
