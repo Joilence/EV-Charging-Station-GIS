@@ -230,3 +230,4 @@ dmypy.json
 /ors/logs/*
 /ors/elevation_cache/*
 /ors/graphs/*
+/ors/*.pbf
