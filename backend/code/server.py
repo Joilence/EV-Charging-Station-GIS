@@ -2,6 +2,7 @@ from flask import Flask, jsonify, request
 from flask_cors import CORS
 import json
 from time import sleep
+import requests
 
 import psycopg2
 from psycopg2.extras import RealDictCursor
@@ -168,3 +169,52 @@ def execQuery(query):
 
 def latLongToGeometry(lat, long):
     return f'POINT({lat} {long})'
+
+#####################################################################################
+######################## API for Route Planning #####################################
+#####################################################################################
+
+ors_api_url = 'http://ors-app:8080/ors/v2/'
+
+@app.route('/route', methods=['POST'])
+def getRoute():
+    
+    # temporarily default params for ors
+    profile = 'driving-car'
+    
+    # request data from ors-app
+    url = f'{ors_api_url}directions/{profile}/geojson'
+    #TODO: handle exception
+    req = requests.post(url, json=request.json)    
+    
+    #TODO: properly organize response
+    return req.json(), 200
+
+@app.route('/isochrones', methods=['POST'])
+def getIsochrones():
+
+    # temporarily default params for ors
+    profile = 'driving-car'
+    location_type = 'start' # start or destination
+    range_type = 'distance' # distance (meters) or time (seconds)
+    
+    # request data from ors-app
+    url = f'{ors_api_url}isochrones/{profile}/'
+    ors_params = request.json
+    ors_params['location_type'] = location_type
+    ors_params['range_type'] = range_type
+    req = requests.post(url, json=ors_params)
+
+    return req.json(), 200
+
+@app.route('/amenities', methods=['POST'])
+def getAmenities():
+    pass
+
+@app.route('/charge-stations', methods=['POST'])
+def getChargeStations():
+    pass
+
+@app.route('/charge-station-score', methods=['POST'])
+def getScoreOfChargeStation():
+    pass
