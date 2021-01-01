@@ -14,6 +14,7 @@ RUN apt-get install -y build-essential
 RUN pip3 install --upgrade pip
 RUN pip3 install Flask Flask-Cors
 RUN pip3 install psycopg2-binary
+RUN pip3 install requests
 
 # environment variables
 ENV FLASK_APP=server.py

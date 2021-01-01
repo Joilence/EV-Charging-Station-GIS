@@ -1,0 +1,187 @@
+swagger: '2.0'
+
+# Introduction
+info:
+  description: |
+    API document for GIS EV Charge Station
+  version: 1.0.0
+  title: GIS EV Charge Station
+  # termsOfService: 
+  # contact:
+    # email:
+  license:
+    name: Apache 2.0
+    url: http://www.apache.org/licenses/LICENSE-2.0.html
+
+# Basic Setup
+host: localhost:4200
+basePath: /
+schemes:
+#  - https
+ - http
+
+# Tags for different groups of API
+tags:
+- name: route
+  description: Everything about route
+- name: isochrone
+  description: Everything about isochrones
+- name: amenities
+  description: Everything about amenities
+
+# API Specification
+paths:
+  /route:
+    post:
+      tags:
+        - route
+      summary: get route for multiple locations as GeoJSON format
+      externalDocs:
+        description: Refer to ORS /directions/geojson
+        url: https://openrouteservice.org/dev/#/api-docs/v2/directions/{profile}/geojson/post
+      operationId: getRoute
+      consumes:
+        - application/json
+      produces:
+        - application/json
+      parameters:
+        - in: body
+          name: body
+          required: true
+          schema:
+            type: object
+            properties:
+              mode:
+                type: string
+              coordinates:
+                type: array
+                items:
+                  type: array
+                  items:
+                    type: number
+                    format: float
+                    minItems: 2
+                    maxItems: 2
+                  example:
+                    [[8.681495,49.41461],[8.686507,49.41943],[8.687872,49.420318]]
+                enum:
+                  - lat
+                  - long
+      responses:
+        200:
+          description: Success with response of GeoJSON
+          schema:
+            type: GeoJson
+        405:
+          description: Invalid input
+  /isochrones:
+    post:
+      tags: 
+        - isochrone
+      summary: get isochrones centered with a location
+      externalDocs:
+        description: Refer to ORS Isochrones
+        url: https://openrouteservice.org/dev/#/api-docs/v2/isochrones/{profile}/post
+      operationId: getIsochrone
+      consumes:
+        - application/json
+      produces:
+        - application/json
+      parameters:
+      - in: body
+        name: body
+        description: get isochrones
+        required: true
+        schema:
+          example:
+            {
+              "locations":[[8.681495,49.41461],[8.686507,49.41943]],
+              "range-type": "distance",
+              "range":[300,200],
+              }
+      responses:
+        200:
+          description: Success
+        405:
+          description: Invalid input
+  /amenities:    
+    post:
+      summary: get amenities in a certain area (for internal scoring and also possible for markers)
+      tags:
+        - amenities
+      consumes:
+        - application/json
+      produces:
+        - application/json
+      parameters:
+      - in: body
+        name: body
+        schema:
+          example:
+            {
+              amenities: [],
+              area: []
+            }
+      responses:
+        200:
+          description: Success
+          schema:
+            example:
+              {
+                amenities: [],
+              }
+        405:
+          description: Invalid input
+  /charge-stations:
+    post:
+      summary: search for charge stations in an area
+      tags:
+        - amenities
+      consumes:
+        - application/json
+      produces:
+        - application/json
+      parameters:
+      - in: body
+        name: body
+        schema:
+          example:
+            {
+              area: [],
+            }
+      responses:
+        200:
+          description: Success
+          schema:
+            example:
+              {
+                chargeStations: [],
+              }
+        405:
+          description: Invalid input
+  /charge-station-score:
+    post:
+      summary: get the score of one charge station
+      tags:
+        - amenities
+      consumes:
+        - application/json
+      produces:
+        - application/json
+      parameters:
+      - in: body
+        name: body
+        schema:
+          example:
+              chargeStationID: 129837
+      responses:
+        200:
+          description: Success
+          schema:
+            type: number
+            format: float
+            example:
+              5
+        405:
+          description: Invalid input
+  
