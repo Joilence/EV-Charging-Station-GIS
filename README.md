@@ -31,14 +31,34 @@ On Windows
 - Backend: Python + Flask
 - Frontend: Javascript + Angular
 
-Architecture is running in a Docker Container
+Architecture is running in a Docker Container.
 
 
+# Prerequisites
+
+As our system relies on [OpenRouteService](https://openrouteservice.org/), we highly recommend to first download the precomputed graphs [here](https://1drv.ms/u/s!AoQ6UBA4h5Orx2jz_8cQIn9gOikl?e=79fJgR).
+Remark: If you do not want to download the precomputed graph, you have to manually download the evaluation data for your specified area in the .pbf file
+from [here](https://srtm.csi.cgiar.org/srtmdata/). 
+
+After downloading the zip file from the OneDrive, extract it in the ```/ors``` directory in the root folder of the project. The ```/ors``` directory should
+now include 4 folders and one .pbf file. Now you are able to start the docker container!
+
+More information on ORS can be found [here](https://github.com/GIScience/openrouteservice). Details on the API is provided
+[here](https://openrouteservice.org/dev/#/api-docs).
 # Execution
 - Start the docker containers with the following command
 ```bash
 docker-compose up
 ```
 
-- Make sure to load the OSM data for germany into the database (can take very long)
-- Connect to localhost:4200 
+Wait some time for the initializaton (around 1-3 minutes).
+
+- If your system is ready, the following GET request should return 'ready':
+http://localhost:8080/ors/v2/health
+- In addition, the health endpoint should provide some more information about the running ORS service:
+http://localhost:8080/ors/v2/status
+- Lastly, the following endpoint should return a valid route:
+http://localhost:8080/ors/v2/directions/driving-car?start=9.011155,47.818380&end=10.499955,53.884399
+- If all the checks succeed, your system is ready.
+
+- Open localhost:4200 for some nice frontend interaction. 
