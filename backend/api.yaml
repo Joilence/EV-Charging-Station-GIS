@@ -26,6 +26,8 @@ tags:
   description: Everything about route
 - name: isochrone
   description: Everything about isochrones
+- name: amenities
+  description: Everything about amenities
 
 # API Specification
 paths:
@@ -33,7 +35,7 @@ paths:
     get:
       tags:
         - route
-      summary: Get route for multiple locations as GeoJSON format
+      summary: get route for multiple locations as GeoJSON format
       externalDocs:
         description: Refer to ORS /directions/geojson
         url: https://openrouteservice.org/dev/#/api-docs/v2/directions/{profile}/geojson/post
@@ -74,7 +76,7 @@ paths:
     get:
       tags: 
         - isochrone
-      summary: Get isochrones
+      summary: get isochrones centered with a location
       externalDocs:
         description: Refer to ORS Isochrones
         url: https://openrouteservice.org/dev/#/api-docs/v2/isochrones/{profile}/post
@@ -102,3 +104,84 @@ paths:
           description: Success
         405:
           description: Invalid input
+  /amenities:    
+    get:
+      summary: get amenities in a certain area (for internal scoring and also possible for markers)
+      tags:
+        - amenities
+      consumes:
+        - application/json
+      produces:
+        - application/json
+      parameters:
+      - in: body
+        name: body
+        schema:
+          example:
+            {
+              amenities: [],
+              area: []
+            }
+      responses:
+        200:
+          description: Success
+          schema:
+            example:
+              {
+                amenities: [],
+              }
+        405:
+          description: Invalid input
+  /charge-stations:
+    get:
+      summary: search for charge stations in an area
+      tags:
+        - amenities
+      consumes:
+        - application/json
+      produces:
+        - application/json
+      parameters:
+      - in: body
+        name: body
+        schema:
+          example:
+            {
+              area: [],
+            }
+      responses:
+        200:
+          description: Success
+          schema:
+            example:
+              {
+                chargeStations: [],
+              }
+        405:
+          description: Invalid input
+  /charge-station-score:
+    get:
+      summary: get the score of one charge station
+      tags:
+        - amenities
+      consumes:
+        - application/json
+      produces:
+        - application/json
+      parameters:
+      - in: body
+        name: body
+        schema:
+          example:
+              chargeStationID: 129837
+      responses:
+        200:
+          description: Success
+          schema:
+            type: number
+            format: float
+            example:
+              5
+        405:
+          description: Invalid input
+  
