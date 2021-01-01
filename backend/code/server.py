@@ -43,6 +43,11 @@ CREATE TABLE charging_stations(
 
 );
 """
+geometryStations="""
+SELECT AddGeometryColumn ('charging_stations','geom',4326,'POINT',2);
+UPDATE charging_stations SET geom = ST_SetSRID(ST_MakePoint(x::float, y::float), 4326);
+"""
+
 
 delRestaurants = """DROP TABLE IF EXISTS restaurants"""
 createRestaurants = """
@@ -58,6 +63,10 @@ CREATE TABLE restaurants(
   ,lng      VARCHAR(100) NOT NULL
 );
 """
+geometryRestaurants="""
+SELECT AddGeometryColumn ('restaurants','geom',4326,'POINT',2);
+UPDATE restaurants SET geom = ST_SetSRID(ST_MakePoint(lat::float, lng::float), 4326);
+"""
 
 with psycopg2.connect(host="database", port=5432, dbname="gis_db", user="gis_user", password="gis_pass") as conn:
     with conn.cursor() as cursor:
@@ -65,11 +74,13 @@ with psycopg2.connect(host="database", port=5432, dbname="gis_db", user="gis_use
         cursor.execute(createStations)
         with open('./data/charging_stations.csv', 'r') as f:
             cursor.copy_from(f, 'charging_stations', sep='|', )
+        cursor.execute(geometryStations)
 
         cursor.execute(delRestaurants)
         cursor.execute(createRestaurants)
         with open('./data/restaurant_score.csv', 'r') as f:
             cursor.copy_from(f, 'restaurants', sep='|', )
+        cursor.execute(geometryRestaurants)
 
     conn.commit()
 
@@ -168,3 +179,49 @@ def execQuery(query):
 
 def latLongToGeometry(lat, long):
     return f'POINT({lat} {long})'
+    
+
+
+    
+#####################################################################################
+######################## STATIONS ###################################################
+#####################################################################################
+
+@app.route('/stations', methods=["POST"])
+def getStations():
+    routepoint= request.json["routepoint"]
+    distance = request.json["distance"]
+    return queryStations(routepoint, distance)
+
+def queryStations(routepoint, distance):
+    #transform coordinates to point
+    # ST_SetSRID(ST_MakePoint(40, 50), 4326)
+
+    #cast way to geography -> distance in meters
+    query= f"""
+    SELECT *
+    FROM charging_stations cs 
+    WHERE ST_Distance(Geography(ST_Transform(cs.geom ,4326)), '{routepoint}') < '{distance}'
+    """
+    return execQuery(query)
+
+
+#####################################################################################
+######################## RESTAURANTS ################################################
+#####################################################################################
+
+@app.route('/restaurants', methods=["POST"])
+def getRestaurants():
+    station= request.json["station"]
+    distance = request.json["distance"]
+    return queryStations(station, distance)
+
+def queryRestaurants(station, distance):
+    query= f"""
+    SELECT * 
+    FROM planet_osm_polygon pop 
+    WHERE amenity in ('bar','bbq','biergarten','cafe','fast_food','food_court','ice_cream','pub','restaurant')
+        AND
+    ST_Distance(Geography(ST_Transform(pop.way ,4326)), '{station}') < '{distance}'
+    """
+    return execQuery(query)
