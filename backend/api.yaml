@@ -32,7 +32,7 @@ tags:
 # API Specification
 paths:
   /route:
-    get:
+    post:
       tags:
         - route
       summary: get route for multiple locations as GeoJSON format
@@ -70,10 +70,12 @@ paths:
       responses:
         200:
           description: Success with response of GeoJSON
+          schema:
+            type: GeoJson
         405:
           description: Invalid input
   /isochrones:
-    get:
+    post:
       tags: 
         - isochrone
       summary: get isochrones centered with a location
@@ -93,8 +95,6 @@ paths:
         schema:
           example:
             {
-              "mode": "driving-car",
-              "location-type": "start",
               "locations":[[8.681495,49.41461],[8.686507,49.41943]],
               "range-type": "distance",
               "range":[300,200],
@@ -105,7 +105,7 @@ paths:
         405:
           description: Invalid input
   /amenities:    
-    get:
+    post:
       summary: get amenities in a certain area (for internal scoring and also possible for markers)
       tags:
         - amenities
@@ -133,7 +133,7 @@ paths:
         405:
           description: Invalid input
   /charge-stations:
-    get:
+    post:
       summary: search for charge stations in an area
       tags:
         - amenities
@@ -160,7 +160,7 @@ paths:
         405:
           description: Invalid input
   /charge-station-score:
-    get:
+    post:
       summary: get the score of one charge station
       tags:
         - amenities
