@@ -215,7 +215,7 @@ def queryStations(routepoint, distance):
 def getRestaurants():
     station= request.json["station"]
     distance = request.json["distance"]
-    return queryStations(station, distance)
+    return queryRestaurants(station, distance)
 
 def queryRestaurants(station, distance):
     query= f"""
