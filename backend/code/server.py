@@ -192,7 +192,10 @@ def latLongToGeometry(lat, long):
 def getStations():
     routepoint= request.json["routepoint"]
     distance = request.json["distance"]
-    return queryStations(routepoint, distance)
+    return jsonify({
+        "type": "FeatureCollection", "stations": queryStations(routepoint, distance)
+    }), 200 
+
 
 def queryStations(routepoint, distance):
     #transform coordinates to point
@@ -200,11 +203,41 @@ def queryStations(routepoint, distance):
 
     #cast way to geography -> distance in meters
     query= f"""
-    SELECT *
+    SELECT objectid, adresse, postleitzahl_ort, x, y, ST_AsText(geom) as geom
     FROM charging_stations cs 
-    WHERE ST_Distance(Geography(ST_Transform(cs.geom ,4326)), '{routepoint}') < '{distance}'
+    WHERE ST_Distance(Geography(ST_Transform(cs.geom ,4326)), ST_GeographyFromText('{routepoint}')) < '{distance}'
     """
-    return execQuery(query)
+    return parseStations(execQuery(query))
+
+
+def parseStations(queryResults):
+    stations=[]
+    for s in queryResults:
+        stations.append({
+            "id": s["objectid"],
+            "address": s["adresse"],
+            "city": s["postleitzahl_ort"],
+            "lat": s["x"],
+            "lng": s["y"],
+            "geom": s["geom"] #probably need cast to str
+        })
+    return stations
+
+@app.route('/stations-score', methods=["POST"])
+def stations_score():
+    routepoint= request.json["routepoint"]
+    distance = request.json["distance"]
+
+    stations = queryStations(routepoint, distance)
+
+    for s in stations:
+        closeRestaurants = queryRestaurants(s["geom"], distance)
+        s["score"] = len(closeRestaurants)
+        s["closeRestaurants"] = closeRestaurants
+    return jsonify({
+        "type": "FeatureCollection", "stations": stations
+    }), 200 
+
 
 
 #####################################################################################
@@ -215,17 +248,31 @@ def queryStations(routepoint, distance):
 def getRestaurants():
     station= request.json["station"]
     distance = request.json["distance"]
-    return queryRestaurants(station, distance)
+    return jsonify({
+        "type": "FeatureCollection", "stations": queryRestaurants(station, distance)
+    }), 200
+
 
 def queryRestaurants(station, distance):
     query= f"""
-    SELECT * 
+    SELECT osm_id, amenity, name, ST_AsText(way) as way
     FROM planet_osm_polygon pop 
     WHERE amenity in ('bar','bbq','biergarten','cafe','fast_food','food_court','ice_cream','pub','restaurant')
         AND
-    ST_Distance(Geography(ST_Transform(pop.way ,4326)), '{station}') < '{distance}'
+    ST_Distance(Geography(ST_Transform(pop.way ,4326)), ST_GeographyFromText('{station}')) < '{distance}'
     """
-    return execQuery(query)
+    return parseRestaurants(execQuery(query))
+
+def parseRestaurants(queryResults):
+    restaurants = []
+    for r in queryResults:
+        restaurants.append({
+            "id": r['osm_id'],
+            "amenity":r["amenity"],
+            "name": r["name"],
+            "way": r["way"] #probably need cast to str
+        })
+    return restaurants
 
 #####################################################################################
 ######################## API for Route Planning #####################################
