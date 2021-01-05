@@ -19,8 +19,8 @@ export class AppComponent implements AfterViewInit {
   constructor(private dataservice: DataService) {}
 
   ngAfterViewInit(): void {
-    this.dataservice.getBarDistribution().subscribe((geojson: FeatureCollection) => {
-      this.mapcomponent.addGeoJSON(geojson);
-    });
+    // this.dataservice.getBarDistribution().subscribe((geojson: FeatureCollection) => {
+    //  this.mapcomponent.addGeoJSON(geojson);
+    // });
   }
 }

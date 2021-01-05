@@ -1,7 +1,7 @@
-import { Injectable } from '@angular/core';
-import { HttpClient, HttpHeaders } from '@angular/common/http';
-import { Observable } from 'rxjs';
-import { FeatureCollection } from 'geojson';
+import {Injectable} from '@angular/core';
+import {HttpClient, HttpHeaders} from '@angular/common/http';
+import {Observable} from 'rxjs';
+import {FeatureCollection, GeoJSON, Geometry} from 'geojson';
 
 const httpOptions = {
   headers: new HttpHeaders({
@@ -9,17 +9,50 @@ const httpOptions = {
   }),
 };
 
+/**
+ * Dataservice responsible to call our backend to retrieve routing and database information.
+ */
 @Injectable({
   providedIn: 'root',
 })
 export class DataService {
-  constructor(private http: HttpClient) {}
+  constructor(private http: HttpClient) {
+  }
 
-  /**
-   * Get Pubs from Backend
-   */
+  private baseUrl = 'http://localhost:5000/';
+
   public getBarDistribution(): Observable<FeatureCollection> {
-    const url = 'http://localhost:5000/numbars';
+    const url = this.baseUrl + 'numbars';
     return this.http.post<FeatureCollection>(url, {}, httpOptions);
+  }
+
+  public getDistance(geom1: Geometry, geom2: Geometry): Observable<string> {
+    const url = this.baseUrl + 'distance';
+    return this.http.post<string>(url, {geom1, geom2}, httpOptions);
+  }
+
+  public getStations(routepoint: string, distance: string): Observable<any> {
+    const url = this.baseUrl + 'stations';
+    return this.http.post<any>(url, {routepoint, distance}, httpOptions);
+  }
+
+  public getStationsScore(routepoint: string, distance: string): Observable<any> {
+    const url = this.baseUrl + 'stations-score';
+    return this.http.post<any>(url, {routepoint, distance}, httpOptions);
+  }
+
+  public getRestaurants(station: string, distance: string): Observable<any> {
+    const url = this.baseUrl + 'restaurants';
+    return this.http.post<any>(url, {station, distance}, httpOptions);
+  }
+
+  public getRoute(mode: string, coordinates: [[number]]): Observable<GeoJSON> {
+    const url = this.baseUrl + 'route';
+    return this.http.post<any>(url, {mode, coordinates}, httpOptions);
+  }
+
+  public getIsochrones(locations: [[number]], rangeType: string, range: [number]): Observable<any> {
+    const url = this.baseUrl + 'isochrones';
+    return this.http.post<any>(url, {locations, 'range-type': rangeType, range}, httpOptions);
   }
 }
