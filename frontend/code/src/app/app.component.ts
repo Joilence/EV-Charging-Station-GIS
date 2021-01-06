@@ -64,5 +64,16 @@ export class AppComponent implements AfterViewInit {
       this.mapcomponent.addRoutePath(geojson);
       this.mapcomponent.addWayPoints(testWayPoints);
     })
+
+    let testForIC = {
+      "locations": [[8.681495, 49.41461],
+                    [8.687872, 49.420318]],
+      "range": [300]
+    }
+
+    this.dataservice.getIsochrones(testForIC.locations, 'distance', testForIC.range).subscribe((features: FeatureCollection) => {
+      this.mapcomponent.addIsochrones(features);
+    })
+
   }
 }

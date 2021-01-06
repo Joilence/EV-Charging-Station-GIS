@@ -171,4 +171,10 @@ export class MapComponent implements OnInit {
     })
     geoJSON.addTo(this.map);
   }
+
+  public addIsochrones(features: FeatureCollection): void {
+    console.log('addIsochrones:', features);
+    const geoJSON = L.geoJSON(features)
+    geoJSON.addTo(this.map);
+  }
 }

@@ -51,8 +51,8 @@ export class DataService {
     return this.http.post<any>(url, {profile, coordinates}, httpOptions);
   }
 
-  public getIsochrones(locations: [[number]], rangeType: string, range: [number]): Observable<any> {
+  public getIsochrones(locations: number[][], rangeType: string, range: number[]): Observable<any> {
     const url = this.baseUrl + 'isochrones';
-    return this.http.post<any>(url, {locations, 'range-type': rangeType, range}, httpOptions);
+    return this.http.post<any>(url, {locations, 'range_type': rangeType, range}, httpOptions);
   }
 }
