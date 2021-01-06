@@ -24,12 +24,45 @@ export class AppComponent implements AfterViewInit {
     // });
 
     let testCor: number[][] = [
-      [ 8.681495, 49.41461 ],
-      [ 8.686507, 49.41943 ],
-      [ 8.687872, 49.420318 ],
+      [8.681495, 49.41461],
+      [8.686507, 49.41943],
+      [8.687872, 49.420318],
     ]
+
+    let testWayPoints = [{
+      "type": "Feature",
+      "properties": {
+        "name": "departure place",
+        "type": "Departure"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": testCor[0]
+      }
+    }, {
+      "type": "Feature",
+      "properties": {
+        "name": "Random Station",
+        "type": "Station"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": testCor[1]
+      }
+    }, {
+      "type": "Feature",
+      "properties": {
+        "name": "destination place",
+        "type": "Destination"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": testCor[2]
+      }
+    },];
     this.dataservice.getRoute('driving-car', testCor).subscribe((geojson: FeatureCollection) => {
       this.mapcomponent.addRoutePath(geojson);
+      this.mapcomponent.addWayPoints(testWayPoints);
     })
   }
 }
