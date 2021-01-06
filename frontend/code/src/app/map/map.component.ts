@@ -124,8 +124,7 @@ export class MapComponent implements OnInit {
         typeof feature.properties.numbars !== 'undefined'
       ) {
         layer.bindPopup(
-          `${feature.properties.name} has ${feature.properties.numbars} bar${
-            feature.properties.numbars > 0 ? 's' : ''
+          `${feature.properties.name} has ${feature.properties.numbars} bar${feature.properties.numbars > 0 ? 's' : ''
           }`
         );
       }
@@ -137,5 +136,28 @@ export class MapComponent implements OnInit {
       style,
     });
     geoJSON.addTo(this.map);
+  }
+  public addRoutePath(geojson: FeatureCollection): void {
+    // console.log('addRoutePath:', geojson);
+    const style = {
+      "color": "#ff7800",
+      "weight": 5,
+      "opacity": 0.65
+    }
+    const geoJSON = L.geoJSON(geojson, {
+      style,
+    });
+    geoJSON.addTo(this.map);
+    // console.log('setView:', geojson.bbox);
+    const bbox = geojson.bbox;
+    this.map.fitBounds([[bbox[1], bbox[0]], [bbox[3], bbox[2]]]);
+
+    
+    //TODO: way points will be depature, destination and  selected stations, maybe added by other functions
+    // const wayPoints = Array.from(geojson.features[0].properties.way_points, i => {
+    //   console.log(geojson.features[0].geometry.coordinates[i])
+    //   return geojson.features[0].geometry.coordinates[i];
+    // })
+    // console.log('wayPoints:', wayPoints);
   }
 }

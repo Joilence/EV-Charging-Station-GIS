@@ -46,9 +46,9 @@ export class DataService {
     return this.http.post<any>(url, {station, distance}, httpOptions);
   }
 
-  public getRoute(mode: string, coordinates: [[number]]): Observable<GeoJSON> {
+  public getRoute(profile: string, coordinates: number[][]): Observable<GeoJSON> {
     const url = this.baseUrl + 'route';
-    return this.http.post<any>(url, {mode, coordinates}, httpOptions);
+    return this.http.post<any>(url, {profile, coordinates}, httpOptions);
   }
 
   public getIsochrones(locations: [[number]], rangeType: string, range: [number]): Observable<any> {
