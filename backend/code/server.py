@@ -60,8 +60,8 @@ CREATE TABLE restaurants(
     ,link VARCHAR(500) NOT NULL
   ,location VARCHAR(100) NOT NULL
   ,type     VARCHAR(100) NOT NULL
-  ,lat      VARCHAR(100) NOT NULL
   ,lng      VARCHAR(100) NOT NULL
+  ,lat      VARCHAR(100) NOT NULL
 );
 """
 geometryRestaurants="""
@@ -202,11 +202,24 @@ def queryStations(routepoint, distance):
     # ST_SetSRID(ST_MakePoint(40, 50), 4326)
 
     #cast way to geography -> distance in meters
+    # query= f"""
+    # SELECT objectid, adresse, postleitzahl_ort, x, y, ST_AsText(geom) as geom
+    # FROM charging_stations cs 
+    # WHERE ST_Distance(Geography(ST_Transform(cs.geom ,4326)), ST_GeographyFromText('{routepoint}')) < '{distance}'
+    # """
+    params = {
+        "locations": [routepoint],
+        "range": [distance]
+    }
+    iso = getIsochrones(params)["features"][0]["geometry"]
+    # return iso
     query= f"""
     SELECT objectid, adresse, postleitzahl_ort, x, y, ST_AsText(geom) as geom
     FROM charging_stations cs 
-    WHERE ST_Distance(Geography(ST_Transform(cs.geom ,4326)), ST_GeographyFromText('{routepoint}')) < '{distance}'
+    WHERE ST_CONTAINS(st_geomfromgeojson('{json.dumps(iso)}'), cs.geom)
     """
+
+    # query=f"""select st_geomfromgeojson('{json.dumps(iso)}')"""
     return parseStations(execQuery(query))
 
 
@@ -226,13 +239,23 @@ def parseStations(queryResults):
 @app.route('/stations-score', methods=["POST"])
 def stations_score():
     routepoint= request.json["routepoint"]
-    distance = request.json["distance"]
+    station_distance = request.json["station-distance"]
+    amenity_distance = request.json["amenity-distance"]
 
-    stations = queryStations(routepoint, distance)
+    stations = queryStations(routepoint, station_distance)
 
     for s in stations:
-        closeRestaurants = queryRestaurants(s["geom"], distance)
+        closeRestaurants = queryRestaurants([s["lat"], s["lng"]], amenity_distance)
         s["score"] = len(closeRestaurants)
+        
+        for r in closeRestaurants:
+            params = {
+                "coordinates":[
+                    [s["lat"], s["lng"]],
+                    [r["lat"], r["lng"]]
+                ]
+            }
+            r["distance"] = getRoute(params)["features"][0]["properties"]["summary"]["distance"]
         s["closeRestaurants"] = closeRestaurants
     return jsonify({
         "type": "FeatureCollection", "stations": stations
@@ -252,14 +275,33 @@ def getRestaurants():
         "type": "FeatureCollection", "stations": queryRestaurants(station, distance)
     }), 200
 
-
 def queryRestaurants(station, distance):
     query= f"""
-    SELECT osm_id, amenity, name, ST_AsText(way) as way
+    SELECT osm_id, amenity, name, ST_AsText(way) as way, ST_X(ST_Centroid(way)) as lat, ST_Y(ST_Centroid(way)) as lng
     FROM planet_osm_polygon pop 
     WHERE amenity in ('bar','bbq','biergarten','cafe','fast_food','food_court','ice_cream','pub','restaurant')
         AND
-    ST_Distance(Geography(ST_Transform(pop.way ,4326)), ST_GeographyFromText('{station}')) < '{distance}'
+    ST_Distance(Geography(ST_Transform(pop.way ,4326)), ST_GeographyFromText('POINT({station[0]} {station[1]})')) < '{distance}'
+
+    """
+
+    return parseRestaurants(execQuery(query))
+
+#use isochrones -> expensive
+def queryRestaurants_iso(station, distance):
+    params = {
+        "locations": [station],
+        "range": [distance]
+    }
+    iso = getIsochrones(params)["features"][0]["geometry"]
+
+    query= f"""
+    SELECT osm_id, amenity, name, ST_AsText(way) as way, ST_AsText(ST_Centroid(way)) as point
+    FROM planet_osm_polygon pop 
+    WHERE amenity in ('bar','bbq','biergarten','cafe','fast_food','food_court','ice_cream','pub','restaurant')
+        AND
+    ST_CONTAINS(st_geomfromgeojson('{json.dumps(iso)}'), ST_Transform(pop.way ,4326))
+
     """
     return parseRestaurants(execQuery(query))
 
@@ -270,6 +312,8 @@ def parseRestaurants(queryResults):
             "id": r['osm_id'],
             "amenity":r["amenity"],
             "name": r["name"],
+            "lat": r["lat"],
+            "lng": r["lng"],
             "way": r["way"] #probably need cast to str
         })
     return restaurants
@@ -281,7 +325,11 @@ def parseRestaurants(queryResults):
 ors_api_url = 'http://ors-app:8080/ors/v2/'
 
 @app.route('/route', methods=['POST'])
-def getRoute():
+def route():
+    params = request.json
+    return getRoute(params), 200
+
+def getRoute(params):
     
     # temporarily default params for ors
     profile = 'driving-car'
@@ -289,13 +337,17 @@ def getRoute():
     # request data from ors-app
     url = f'{ors_api_url}directions/{profile}/geojson'
     #TODO: handle exception
-    req = requests.post(url, json=request.json)    
+    req = requests.post(url, json=params)    
     
     #TODO: properly organize response
-    return req.json(), 200
+    return req.json()
 
 @app.route('/isochrones', methods=['POST'])
-def getIsochrones():
+def isochrones():
+    params = request.json
+    return getIsochrones(params), 200
+
+def getIsochrones(params):
 
     # temporarily default params for ors
     profile = 'driving-car'
@@ -304,12 +356,12 @@ def getIsochrones():
     
     # request data from ors-app
     url = f'{ors_api_url}isochrones/{profile}/'
-    ors_params = request.json
+    ors_params = params #request.json
     ors_params['location_type'] = location_type
     ors_params['range_type'] = range_type
     req = requests.post(url, json=ors_params)
 
-    return req.json(), 200
+    return req.json()
 
 @app.route('/amenities', methods=['POST'])
 def getAmenities():
