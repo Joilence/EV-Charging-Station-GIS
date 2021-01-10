@@ -69,6 +69,11 @@ SELECT AddGeometryColumn ('restaurants','geom',4326,'POINT',2);
 UPDATE restaurants SET geom = ST_SetSRID(ST_MakePoint(lng::float, lat::float), 4326);
 """
 
+createIndex="""
+CREATE INDEX IF NOT EXISTS idx_poly_amenities ON  planet_osm_polygon USING gist (way)
+       WHERE(amenity in ('bar','bbq','biergarten','cafe','fast_food','food_court','ice_cream','pub','restaurant'));
+"""
+
 with psycopg2.connect(host="database", port=5432, dbname="gis_db", user="gis_user", password="gis_pass") as conn:
     with conn.cursor() as cursor:
         cursor.execute(delStations)
@@ -82,6 +87,10 @@ with psycopg2.connect(host="database", port=5432, dbname="gis_db", user="gis_use
         with open('./data/restaurant_score.csv', 'r') as f:
             cursor.copy_from(f, 'restaurants', sep='|', )
         cursor.execute(geometryRestaurants)
+
+        cursor.execute(createIndex)
+
+        
 
     conn.commit()
 
