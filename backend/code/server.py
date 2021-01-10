@@ -192,8 +192,10 @@ def latLongToGeometry(lat, long):
 def getStations():
     routepoint= request.json["routepoint"]
     distance = request.json["distance"]
+    stations = queryStations(routepoint, distance)
+
     return jsonify({
-        "type": "FeatureCollection", "stations": queryStations(routepoint, distance)
+        "type": "FeatureCollection", "stations": stations
     }), 200 
 
 
@@ -219,8 +221,7 @@ def queryStations(routepoint, distance):
     WHERE ST_CONTAINS(st_geomfromgeojson('{json.dumps(iso)}'), cs.geom)
     """
 
-    # query=f"""select st_geomfromgeojson('{json.dumps(iso)}')"""
-    return parseStations(execQuery(query))
+    return appendDistance(parseStations(execQuery(query)), routepoint)
 
 
 def parseStations(queryResults):
@@ -236,6 +237,21 @@ def parseStations(queryResults):
         })
     return stations
 
+def appendDistance(queryResult, routepoint):
+    #compute distance routepoint->station
+    for s in queryResult:
+        params = {
+            "coordinates":[
+                [routepoint[0], routepoint[1]],
+                [s["lng"], s["lat"]]
+                # ,[r["lng"], r["lat"]]
+            ]
+        }
+        s["distance"] = getRoute(params)["features"][0]["properties"]["summary"]["distance"]
+    return queryResult
+
+
+
 @app.route('/stations-score', methods=["POST"])
 def stations_score():
     routepoint= request.json["routepoint"]
@@ -246,8 +262,7 @@ def stations_score():
 
     for s in stations:
         closeRestaurants = queryRestaurants([s["lng"], s["lat"]], amenity_distance)
-        s["score"] = len(closeRestaurants)
-        
+
         for r in closeRestaurants:
             params = {
                 "coordinates":[
@@ -257,9 +272,22 @@ def stations_score():
             }
             r["distance"] = getRoute(params)["features"][0]["properties"]["summary"]["distance"]
         s["closeRestaurants"] = closeRestaurants
+
+        s["score"] = calcScore(s)
     return jsonify({
         "type": "FeatureCollection", "stations": stations
     }), 200 
+
+
+def calcScore(station):
+    distance = station["distance"]
+    score = 100/(distance+100)
+    for r in station["closeRestaurants"]:
+        score+= 100/(r["distance"]+100)
+        if(r["amenity"]=="rated_restaurant"):
+            score += 2
+    return score
+    
 
 
 
@@ -276,14 +304,30 @@ def getRestaurants():
     }), 200
 
 def queryRestaurants(station, distance):
+    # query= f"""
+    # SELECT osm_id, amenity, name, ST_AsText(way) as way, ST_X(ST_Centroid(way)) as lng, ST_Y(ST_Centroid(way)) as lat
+    # FROM planet_osm_polygon pop 
+    # WHERE amenity in ('bar','bbq','biergarten','cafe','fast_food','food_court','ice_cream','pub','restaurant')
+    #     AND
+    # ST_Distance(Geography(ST_Transform(pop.way ,4326)), ST_GeographyFromText('POINT({station[0]} {station[1]})')) < '{distance}'
+    # """
+
     query= f"""
-    SELECT osm_id, amenity, name, ST_AsText(way) as way, ST_X(ST_Centroid(way)) as lng, ST_Y(ST_Centroid(way)) as lat
+    SELECT osm_id, amenity, name, ST_AsText(way) as way, ST_X(ST_Centroid(way)) as lng, ST_Y(ST_Centroid(way)) as lat, '0' as rating
     FROM planet_osm_polygon pop 
     WHERE amenity in ('bar','bbq','biergarten','cafe','fast_food','food_court','ice_cream','pub','restaurant')
         AND
-    ST_Distance(Geography(ST_Transform(pop.way ,4326)), ST_GeographyFromText('POINT({station[0]} {station[1]})')) < '{distance}'
+    ST_Distance(Geography(ST_Transform(pop.way ,4326)), ST_GeographyFromText('POINT ({station[0]} {station[1]})')) < '{distance}'
+        
+        UNION
 
+    SELECT 0 as osm_id, 'rated_restaurant' as amenity, r.name, ST_AsText(r.geom), cast(r.lng as float) as lng, cast(r.lat as float) as lat, r.rating as rating
+    FROM restaurants r
+    WHERE
+    ST_Distance(Geography(ST_Transform(r.geom ,4326)), ST_GeographyFromText('POINT ({station[0]} {station[1]})')) < '{distance}';
     """
+
+
 
     return parseRestaurants(execQuery(query))
 
@@ -313,6 +357,7 @@ def parseRestaurants(queryResults):
             "id": r['osm_id'],
             "amenity":r["amenity"],
             "name": r["name"],
+            "rating": r["rating"],
             "lat": r["lat"],
             "lng": r["lng"],
             "way": r["way"] #probably need cast to str
