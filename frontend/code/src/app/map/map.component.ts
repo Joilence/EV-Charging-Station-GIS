@@ -1,6 +1,7 @@
+/// <reference types='leaflet-sidebar-v2' />
 import { Component, Input, OnInit } from '@angular/core';
-import { Feature, FeatureCollection, Geometry, MultiPolygon } from 'geojson';
-import * as L from 'leaflet';
+import { Feature, FeatureCollection, Geometry } from 'geojson';
+import {GeoJSON, Icon, Layer, LayerGroup, Map, Marker, TileLayer, SidebarOptions} from 'leaflet';
 import * as d3 from 'd3';
 
 @Component({
@@ -9,8 +10,15 @@ import * as d3 from 'd3';
   styleUrls: ['./map.component.scss'],
 })
 export class MapComponent implements OnInit {
-  private map!: L.Map;
-  private amenitiesLayer: L.LayerGroup<any> = L.layerGroup();
+  public map!: Map;
+  private amenitiesLayer: LayerGroup = new LayerGroup();
+
+  public sidebarOptions: SidebarOptions = {
+    position: 'left',
+    autopan: true,
+    closeButton: true,
+    container: 'sidebar',
+  };
 
   private _amenities: {
     name: string;
@@ -40,11 +48,11 @@ export class MapComponent implements OnInit {
 
     // create a marker for each supplied amenity
     const markers = this.amenities.map((a) =>
-      L.marker([a.latitude, a.longitude]).bindPopup(a.name)
+      new Marker([a.latitude, a.longitude]).bindPopup(a.name)
     );
 
     // create a new layer group and add it to the map
-    this.amenitiesLayer = L.layerGroup(markers);
+    this.amenitiesLayer = new LayerGroup(markers);
     markers.forEach((m) => m.addTo(this.amenitiesLayer));
     this.map.addLayer(this.amenitiesLayer);
   }
@@ -57,7 +65,7 @@ export class MapComponent implements OnInit {
     const iconRetinaUrl = './assets/marker-icon-2x.png';
     const iconUrl = './assets/marker-icon.png';
     const shadowUrl = './assets/marker-shadow.png';
-    const iconDefault = L.icon({
+    const iconDefault = new Icon({
       iconRetinaUrl,
       iconUrl,
       shadowUrl,
@@ -68,13 +76,13 @@ export class MapComponent implements OnInit {
       shadowSize: [41, 41],
     });
 
-    L.Marker.prototype.options.icon = iconDefault;
+    Marker.prototype.options.icon = iconDefault;
 
     // basic setup, create a map in the div with the id "map"
-    this.map = L.map('map').setView([48.12, 8.2], 10);
+    this.map = new Map('map').setView([48.12, 8.2], 10);
 
     // set a tilelayer, e.g. a world map in the background
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    new TileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
       attribution:
         '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
     }).addTo(this.map);
@@ -82,7 +90,6 @@ export class MapComponent implements OnInit {
 
   /**
    * Add a GeoJSON FeatureCollection to this map
-   * @param latitude
    */
   public addGeoJSON(geojson: FeatureCollection): void {
     // find maximum numbars value in array
@@ -117,7 +124,7 @@ export class MapComponent implements OnInit {
     };
 
     // each feature gets an additional popup!
-    const onEachFeature = (feature: Feature<Geometry, any>, layer: L.Layer) => {
+    const onEachFeature = (feature: Feature<Geometry, any>, layer: Layer) => {
       if (
         feature.properties &&
         feature.properties.name &&
@@ -131,7 +138,7 @@ export class MapComponent implements OnInit {
     };
 
     // create one geoJSON layer and add it to the map
-    const geoJSON = L.geoJSON(geojson, {
+    const geoJSON = new GeoJSON(geojson, {
       onEachFeature,
       style,
     });
@@ -141,17 +148,19 @@ export class MapComponent implements OnInit {
   public addRoutePath(features: FeatureCollection): void {
     // console.log('addRoutePath:', features);
     const style = {
-      "color": "#ff7800",
-      "weight": 5,
-      "opacity": 0.65
-    }
-    const geoJSON = L.geoJSON(features, {
+      color: '#ff7800',
+      weight: 5,
+      opacity: 0.65
+    };
+    const geoJSON = new GeoJSON(features, {
       style,
     });
     geoJSON.addTo(this.map);
     // console.log('setView:', features.bbox);
     const bbox = features.bbox;
-    this.map.fitBounds([[bbox[1], bbox[0]], [bbox[3], bbox[2]]]);
+    if (bbox) {
+      this.map.fitBounds([[bbox[1], bbox[0]], [bbox[3], bbox[2]]]);
+    }
 
     // way points will be depature, destination and  selected stations, maybe added by other functions
     // const wayPoints = Array.from(features.features[0].properties.way_points, i => {
@@ -164,17 +173,17 @@ export class MapComponent implements OnInit {
   public addWayPoints(features: FeatureCollection): void {
     const onEachFeature = (feature: Feature<Geometry, any>, layer: L.Layer) => {
       layer.bindPopup(`${feature.properties.type}: ${feature.properties.name}`);
-    }
+    };
 
-    const geoJSON = L.geoJSON(features, {
+    const geoJSON = new GeoJSON(features, {
       onEachFeature,
-    })
+    });
     geoJSON.addTo(this.map);
   }
 
   public addIsochrones(features: FeatureCollection): void {
     console.log('addIsochrones:', features);
-    const geoJSON = L.geoJSON(features)
+    const geoJSON = new GeoJSON(features);
     geoJSON.addTo(this.map);
   }
 }
