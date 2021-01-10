@@ -13,6 +13,8 @@ import { MatButtonModule } from '@angular/material/button';
 // own components
 import { AppComponent } from './app.component';
 import { MapComponent } from './map/map.component';
+import {NgxSidebarControlModule} from '@runette/ngx-leaflet-sidebar';
+import {LeafletModule} from '@asymmetrik/ngx-leaflet';
 
 @NgModule({
   declarations: [AppComponent, MapComponent],
@@ -24,7 +26,9 @@ import { MapComponent } from './map/map.component';
     FormsModule,
     ReactiveFormsModule,
     MatButtonModule,
-    HttpClientModule
+    HttpClientModule,
+    LeafletModule,
+    NgxSidebarControlModule
   ],
   providers: [],
   bootstrap: [AppComponent],
