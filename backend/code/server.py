@@ -60,13 +60,18 @@ CREATE TABLE restaurants(
     ,link VARCHAR(500) NOT NULL
   ,location VARCHAR(100) NOT NULL
   ,type     VARCHAR(100) NOT NULL
-  ,lng      VARCHAR(100) NOT NULL
   ,lat      VARCHAR(100) NOT NULL
+  ,lng      VARCHAR(100) NOT NULL
 );
 """
 geometryRestaurants="""
 SELECT AddGeometryColumn ('restaurants','geom',4326,'POINT',2);
-UPDATE restaurants SET geom = ST_SetSRID(ST_MakePoint(lat::float, lng::float), 4326);
+UPDATE restaurants SET geom = ST_SetSRID(ST_MakePoint(lng::float, lat::float), 4326);
+"""
+
+createIndex="""
+CREATE INDEX IF NOT EXISTS idx_poly_amenities ON  planet_osm_polygon USING gist (way)
+       WHERE(amenity in ('bar','bbq','biergarten','cafe','fast_food','food_court','ice_cream','pub','restaurant'));
 """
 
 with psycopg2.connect(host="database", port=5432, dbname="gis_db", user="gis_user", password="gis_pass") as conn:
@@ -82,6 +87,10 @@ with psycopg2.connect(host="database", port=5432, dbname="gis_db", user="gis_use
         with open('./data/restaurant_score.csv', 'r') as f:
             cursor.copy_from(f, 'restaurants', sep='|', )
         cursor.execute(geometryRestaurants)
+
+        cursor.execute(createIndex)
+
+        
 
     conn.commit()
 
@@ -192,8 +201,10 @@ def latLongToGeometry(lat, long):
 def getStations():
     routepoint= request.json["routepoint"]
     distance = request.json["distance"]
+    stations = queryStations(routepoint, distance)
+
     return jsonify({
-        "type": "FeatureCollection", "stations": queryStations(routepoint, distance)
+        "type": "FeatureCollection", "stations": stations
     }), 200 
 
 
@@ -219,8 +230,7 @@ def queryStations(routepoint, distance):
     WHERE ST_CONTAINS(st_geomfromgeojson('{json.dumps(iso)}'), cs.geom)
     """
 
-    # query=f"""select st_geomfromgeojson('{json.dumps(iso)}')"""
-    return parseStations(execQuery(query))
+    return appendDistance(parseStations(execQuery(query)), routepoint)
 
 
 def parseStations(queryResults):
@@ -230,11 +240,26 @@ def parseStations(queryResults):
             "id": s["objectid"],
             "address": s["adresse"],
             "city": s["postleitzahl_ort"],
-            "lat": s["x"],
-            "lng": s["y"],
+            "lat": s["y"],
+            "lng": s["x"],
             "geom": s["geom"] #probably need cast to str
         })
     return stations
+
+def appendDistance(queryResult, routepoint):
+    #compute distance routepoint->station
+    for s in queryResult:
+        params = {
+            "coordinates":[
+                [routepoint[0], routepoint[1]],
+                [s["lng"], s["lat"]]
+                # ,[r["lng"], r["lat"]]
+            ]
+        }
+        s["distance"] = getRoute(params)["features"][0]["properties"]["summary"]["distance"]
+    return queryResult
+
+
 
 @app.route('/stations-score', methods=["POST"])
 def stations_score():
@@ -245,21 +270,33 @@ def stations_score():
     stations = queryStations(routepoint, station_distance)
 
     for s in stations:
-        closeRestaurants = queryRestaurants([s["lat"], s["lng"]], amenity_distance)
-        s["score"] = len(closeRestaurants)
-        
+        closeRestaurants = queryRestaurants([s["lng"], s["lat"]], amenity_distance)
+
         for r in closeRestaurants:
             params = {
                 "coordinates":[
-                    [s["lat"], s["lng"]],
-                    [r["lat"], r["lng"]]
+                    [s["lng"], s["lat"]],
+                    [r["lng"], r["lat"]]
                 ]
             }
             r["distance"] = getRoute(params)["features"][0]["properties"]["summary"]["distance"]
         s["closeRestaurants"] = closeRestaurants
+
+        s["score"] = calcScore(s)
     return jsonify({
         "type": "FeatureCollection", "stations": stations
     }), 200 
+
+
+def calcScore(station):
+    distance = station["distance"]
+    score = 100/(distance+100)
+    for r in station["closeRestaurants"]:
+        score+= 100/(r["distance"]+100)
+        if(r["amenity"]=="rated_restaurant"):
+            score += 2
+    return score
+    
 
 
 
@@ -276,34 +313,51 @@ def getRestaurants():
     }), 200
 
 def queryRestaurants(station, distance):
+    # query= f"""
+    # SELECT osm_id, amenity, name, ST_AsText(way) as way, ST_X(ST_Centroid(way)) as lng, ST_Y(ST_Centroid(way)) as lat
+    # FROM planet_osm_polygon pop 
+    # WHERE amenity in ('bar','bbq','biergarten','cafe','fast_food','food_court','ice_cream','pub','restaurant')
+    #     AND
+    # ST_Distance(Geography(ST_Transform(pop.way ,4326)), ST_GeographyFromText('POINT({station[0]} {station[1]})')) < '{distance}'
+    # """
+
     query= f"""
-    SELECT osm_id, amenity, name, ST_AsText(way) as way, ST_X(ST_Centroid(way)) as lat, ST_Y(ST_Centroid(way)) as lng
+    SELECT osm_id, amenity, name, ST_AsText(way) as way, ST_X(ST_Centroid(way)) as lng, ST_Y(ST_Centroid(way)) as lat, '0' as rating
     FROM planet_osm_polygon pop 
     WHERE amenity in ('bar','bbq','biergarten','cafe','fast_food','food_court','ice_cream','pub','restaurant')
         AND
-    ST_Distance(Geography(ST_Transform(pop.way ,4326)), ST_GeographyFromText('POINT({station[0]} {station[1]})')) < '{distance}'
+    ST_Distance(Geography(ST_Transform(pop.way ,4326)), ST_GeographyFromText('POINT ({station[0]} {station[1]})')) < '{distance}'
+        
+        UNION
 
+    SELECT 0 as osm_id, 'rated_restaurant' as amenity, r.name, ST_AsText(r.geom), cast(r.lng as float) as lng, cast(r.lat as float) as lat, r.rating as rating
+    FROM restaurants r
+    WHERE
+    ST_Distance(Geography(ST_Transform(r.geom ,4326)), ST_GeographyFromText('POINT ({station[0]} {station[1]})')) < '{distance}';
     """
+
+
 
     return parseRestaurants(execQuery(query))
 
 #use isochrones -> expensive
-def queryRestaurants_iso(station, distance):
-    params = {
-        "locations": [station],
-        "range": [distance]
-    }
-    iso = getIsochrones(params)["features"][0]["geometry"]
 
-    query= f"""
-    SELECT osm_id, amenity, name, ST_AsText(way) as way, ST_AsText(ST_Centroid(way)) as point
-    FROM planet_osm_polygon pop 
-    WHERE amenity in ('bar','bbq','biergarten','cafe','fast_food','food_court','ice_cream','pub','restaurant')
-        AND
-    ST_CONTAINS(st_geomfromgeojson('{json.dumps(iso)}'), ST_Transform(pop.way ,4326))
+# def queryRestaurants_iso(station, distance):
+#     params = {
+#         "locations": [station],
+#         "range": [distance]
+#     }
+#     iso = getIsochrones(params)["features"][0]["geometry"]
 
-    """
-    return parseRestaurants(execQuery(query))
+#     query= f"""
+#     SELECT osm_id, amenity, name, ST_AsText(way) as way, ST_AsText(ST_Centroid(way)) as point
+#     FROM planet_osm_polygon pop 
+#     WHERE amenity in ('bar','bbq','biergarten','cafe','fast_food','food_court','ice_cream','pub','restaurant')
+#         AND
+#     ST_CONTAINS(st_geomfromgeojson('{json.dumps(iso)}'), ST_Transform(pop.way ,4326))
+
+#     """
+#     return parseRestaurants(execQuery(query))
 
 def parseRestaurants(queryResults):
     restaurants = []
@@ -312,6 +366,7 @@ def parseRestaurants(queryResults):
             "id": r['osm_id'],
             "amenity":r["amenity"],
             "name": r["name"],
+            "rating": r["rating"],
             "lat": r["lat"],
             "lng": r["lng"],
             "way": r["way"] #probably need cast to str
