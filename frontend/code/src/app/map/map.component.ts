@@ -146,7 +146,7 @@ export class MapComponent implements OnInit {
     geoJSON.addTo(this.map);
   }
 
-  public handleRoute(fc: FeatureCollection, maxRange: number = 5000000, dangerBattery: number = 0.2): FeatureCollection {
+  public handleRoute(fc: FeatureCollection, maxRange: number = 300000, dangerBattery: number = 0.2): FeatureCollection {
     const wholeRoute = fc.features[0];
     // TODO: TS data safety check
     wholeRoute.properties.type = 'Whole Route';
@@ -159,11 +159,11 @@ export class MapComponent implements OnInit {
     const segments = wholeRoute.properties.segments;
     const lastSegmentDistance = segments[segments.length - 1].distance;
     console.log('lastSegmentDistance: ', lastSegmentDistance);
-    if (lastSegmentDistance > maxRange) {
+    if (lastSegmentDistance > maxRange * (1 - dangerBattery)) {
       isDanger = true;
       const previousSegmentsDistance = wholeRouteDistance - lastSegmentDistance;
       const dsStartDistance = previousSegmentsDistance + maxRange * (1 - dangerBattery);
-      const dsEndDistance = previousSegmentsDistance + maxRange;
+      const dsEndDistance = previousSegmentsDistance + Math.min(maxRange, lastSegmentDistance);
       const dsStartPercent = dsStartDistance / wholeRouteDistance;
       const dsEndPercent = dsEndDistance / wholeRouteDistance;
       // console.log('previous seg dis:', previousSegmentsDistance);
