@@ -1,7 +1,7 @@
 /// <reference types='leaflet-sidebar-v2' />
-import { Component, Input, OnInit } from '@angular/core';
-import { Feature, FeatureCollection, Geometry } from 'geojson';
-import {GeoJSON, Icon, Layer, LayerGroup, Map, Marker, TileLayer, SidebarOptions} from 'leaflet';
+import {Component, Input, OnInit} from '@angular/core';
+import {Feature, FeatureCollection, Geometry} from 'geojson';
+import {GeoJSON, Icon, Layer, LayerGroup, Map, Marker, Polyline, SidebarOptions, TileLayer} from 'leaflet';
 import * as d3 from 'd3';
 import {extract} from './leaflet-geometryutil.js';
 
@@ -150,7 +150,7 @@ export class MapComponent implements OnInit {
     const wholeRoute = fc.features[0];
     // TODO: TS data safety check
     wholeRoute.properties.type = 'Whole Route';
-    const wholeRouteLine = L.polyline(wholeRoute.geometry.coordinates);
+    const wholeRouteLine = new Polyline(wholeRoute.geometry.coordinates);
     const wholeRouteDistance = wholeRoute.properties.summary.distance;
 
     // danger segment (ds)
@@ -168,16 +168,20 @@ export class MapComponent implements OnInit {
       const dsEndPercent = dsEndDistance / wholeRouteDistance;
       // console.log('previous seg dis:', previousSegmentsDistance);
       // TODO: ugly code: reverse [lat, lng] for unknown problem; 3 places;
-      const dsCors = Array.from(extract(this.map, wholeRouteLine, dsStartPercent, dsEndPercent), e => {return [e.lat, e.lng]});
+      const dsCors = Array.from(extract(this.map, wholeRouteLine, dsStartPercent, dsEndPercent), e => {
+        return [e.lat, e.lng];
+      });
       // console.log(dsCors);
-      const dsLine = L.polyline(dsCors);
+      const dsLine = new Polyline(dsCors);
       const dsGeoJSON = dsLine.toGeoJSON();
       dsGeoJSON.geometry.coordinates = dsCors;
       dsGeoJSON.properties.type = 'Danger Segment';
       console.log('Danger Segment:', dsGeoJSON);
       // TODO: ugly code fix
-      const ssCors = Array.from(extract(this.map, wholeRouteLine, 0, dsStartPercent), e => {return [e.lat, e.lng]});;
-      const ssLine = L.polyline(ssCors);
+      const ssCors = Array.from(extract(this.map, wholeRouteLine, 0, dsStartPercent), e => {
+        return [e.lat, e.lng];
+      });
+      const ssLine = new Polyline(ssCors);
       const ssGeoJSON = ssLine.toGeoJSON();
       ssGeoJSON.geometry.coordinates = ssCors;
       ssGeoJSON.properties.type = 'Safe Segment';
@@ -211,31 +215,35 @@ export class MapComponent implements OnInit {
     const styles = function(feature) {
       console.log(feature);
       switch (feature.properties.type) {
-        case 'Whole Route': return {
-          "color": "#000000",
-          "weight": 8,
-          "opacity": 0.2
-        };
-
-        case 'Danger Segment': return {
-          "color": "#ff7800",
-          "weight": 5,
-          "opacity": 0.65
+        case 'Whole Route':
+          return {
+            'color': '#000000',
+            'weight': 8,
+            'opacity': 0.2
           };
 
-        case 'Safe Segment': return {
-          "color": "#03fc94",
-          "weight": 5,
-          "opacity": 0.65
-        };
+        case 'Danger Segment':
+          return {
+            'color': '#ff7800',
+            'weight': 5,
+            'opacity': 0.65
+          };
 
-        default: return {
-          "color": "#ff7800",
-          "weight": 5,
-          "opacity": 0.65
-        };
+        case 'Safe Segment':
+          return {
+            'color': '#03fc94',
+            'weight': 5,
+            'opacity': 0.65
+          };
+
+        default:
+          return {
+            'color': '#ff7800',
+            'weight': 5,
+            'opacity': 0.65
+          };
       }
-    }
+    };
     const geoJSON = L.geoJSON(processedFC, {
       'style': styles,
     });
