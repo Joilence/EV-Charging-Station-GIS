@@ -2,6 +2,7 @@ import { Component, Input, OnInit } from '@angular/core';
 import { Feature, FeatureCollection, Geometry, MultiPolygon } from 'geojson';
 import * as L from 'leaflet';
 import * as d3 from 'd3';
+import {extract} from './leaflet-geometryutil.js';
 
 @Component({
   selector: 'app-map',
@@ -138,27 +139,105 @@ export class MapComponent implements OnInit {
     geoJSON.addTo(this.map);
   }
 
-  public addRoutePath(features: FeatureCollection): void {
-    // console.log('addRoutePath:', features);
-    const style = {
-      "color": "#ff7800",
-      "weight": 5,
-      "opacity": 0.65
+  public handleRoute(fc: FeatureCollection, maxRange: number = 5000000, dangerBattery: number = 0.2): FeatureCollection {
+    const wholeRoute = fc.features[0];
+    // TODO: TS data safety check
+    wholeRoute.properties.type = 'Whole Route';
+    const wholeRouteLine = L.polyline(wholeRoute.geometry.coordinates);
+    const wholeRouteDistance = wholeRoute.properties.summary.distance;
+
+    // danger segment (ds)
+    // TODO: check every segment instead of only last one
+    let isDanger = false;
+    const segments = wholeRoute.properties.segments;
+    const lastSegmentDistance = segments[segments.length - 1].distance;
+    console.log('lastSegmentDistance: ', lastSegmentDistance);
+    if (lastSegmentDistance > maxRange) {
+      isDanger = true;
+      const previousSegmentsDistance = wholeRouteDistance - lastSegmentDistance;
+      const dsStartDistance = previousSegmentsDistance + maxRange * (1 - dangerBattery);
+      const dsEndDistance = previousSegmentsDistance + maxRange;
+      const dsStartPercent = dsStartDistance / wholeRouteDistance;
+      const dsEndPercent = dsEndDistance / wholeRouteDistance;
+      // console.log('previous seg dis:', previousSegmentsDistance);
+      // TODO: ugly code: reverse [lat, lng] for unknown problem; 3 places;
+      const dsCors = Array.from(extract(this.map, wholeRouteLine, dsStartPercent, dsEndPercent), e => {return [e.lat, e.lng]});
+      // console.log(dsCors);
+      const dsLine = L.polyline(dsCors);
+      const dsGeoJSON = dsLine.toGeoJSON();
+      dsGeoJSON.geometry.coordinates = dsCors;
+      dsGeoJSON.properties.type = 'Danger Segment';
+      console.log('Danger Segment:', dsGeoJSON);
+      // TODO: ugly code fix
+      const ssCors = Array.from(extract(this.map, wholeRouteLine, 0, dsStartPercent), e => {return [e.lat, e.lng]});;
+      const ssLine = L.polyline(ssCors);
+      const ssGeoJSON = ssLine.toGeoJSON();
+      ssGeoJSON.geometry.coordinates = ssCors;
+      ssGeoJSON.properties.type = 'Safe Segment';
+
+      fc.features.push(dsGeoJSON);
+      fc.features.push(ssGeoJSON);
     }
-    const geoJSON = L.geoJSON(features, {
-      style,
+
+    // safe segment (ss)
+    if (!isDanger) {
+      // TODO: ugly code fix
+      const ssGeoJSON = wholeRouteLine.toGeoJSON();
+      ssGeoJSON.geometry.coordinates = wholeRoute.geometry.coordinates;
+      ssGeoJSON.properties.type = 'Safe Segment';
+      fc.features.push(ssGeoJSON);
+    }
+
+    // fc.features = fc.features.slice(1, 3);
+    return fc;
+  }
+
+  public addRoutePath(fc: FeatureCollection): void {
+    const processedFC = this.handleRoute(fc);
+    console.log('addRoutePath:', processedFC);
+    // const style = {
+    //   "color": "#ff7800",
+    //   "weight": 5,
+    //   "opacity": 0.65
+    // }
+
+    const styles = function(feature) {
+      console.log(feature);
+      switch (feature.properties.type) {
+        case 'Whole Route': return {
+          "color": "#000000",
+          "weight": 8,
+          "opacity": 0.2
+        };
+
+        case 'Danger Segment': return {
+          "color": "#ff7800",
+          "weight": 5,
+          "opacity": 0.65
+          };
+
+        case 'Safe Segment': return {
+          "color": "#03fc94",
+          "weight": 5,
+          "opacity": 0.65
+        };
+
+        default: return {
+          "color": "#ff7800",
+          "weight": 5,
+          "opacity": 0.65
+        };
+      }
+    }
+    const geoJSON = L.geoJSON(processedFC, {
+      'style': styles,
     });
     geoJSON.addTo(this.map);
     // console.log('setView:', features.bbox);
-    const bbox = features.bbox;
+    const bbox = processedFC.bbox;
     this.map.fitBounds([[bbox[1], bbox[0]], [bbox[3], bbox[2]]]);
 
-    // way points will be depature, destination and  selected stations, maybe added by other functions
-    // const wayPoints = Array.from(features.features[0].properties.way_points, i => {
-    //   console.log(features.features[0].geometry.coordinates[i])
-    //   return features.features[0].geometry.coordinates[i];
-    // })
-    // console.log('wayPoints:', wayPoints);
+    // way points will be depature, destination and selected stations with related info, maybe added by other functions
   }
 
   public addWayPoints(features: FeatureCollection): void {
