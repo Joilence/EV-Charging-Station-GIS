@@ -31,7 +31,7 @@ export class DataService {
     return this.http.post<string>(url, {geom1, geom2}, httpOptions);
   }
 
-  public getStations(routepoint: string, distance: string): Observable<any> {
+  public getStations(routepoint: number[][], distance: number[]): Observable<any> {
     const url = this.baseUrl + 'stations';
     return this.http.post<any>(url, {routepoint, distance}, httpOptions);
   }
