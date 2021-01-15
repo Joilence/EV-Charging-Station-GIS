@@ -199,8 +199,9 @@ def latLongToGeometry(lat, long):
 
 @app.route('/stations', methods=["POST"])
 def getStations():
-    routepoint= request.json["routepoint"]
-    distance = request.json["distance"]
+    print('request.json:', request.json)
+    routepoint= request.json["locations"]
+    distance = request.json["range"]
     stations = queryStations(routepoint, distance)
 
     return jsonify({
@@ -219,8 +220,8 @@ def queryStations(routepoint, distance):
     # WHERE ST_Distance(Geography(ST_Transform(cs.geom ,4326)), ST_GeographyFromText('{routepoint}')) < '{distance}'
     # """
     params = {
-        "locations": [routepoint],
-        "range": [distance]
+        "locations": routepoint,
+        "range": distance
     }
     iso = getIsochrones(params)["features"][0]["geometry"]
     # return iso
@@ -230,7 +231,7 @@ def queryStations(routepoint, distance):
     WHERE ST_CONTAINS(st_geomfromgeojson('{json.dumps(iso)}'), cs.geom)
     """
 
-    return appendDistance(parseStations(execQuery(query)), routepoint)
+    return appendDistance(parseStations(execQuery(query)), routepoint[0])
 
 
 def parseStations(queryResults):
