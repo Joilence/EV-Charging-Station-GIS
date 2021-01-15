@@ -1,5 +1,5 @@
 import { AfterViewInit, Component, ViewChild } from '@angular/core';
-import {FeatureCollection, GeoJSON} from 'geojson';
+import {FeatureCollection} from 'geojson';
 import { MapComponent } from './map/map.component';
 import { DataService } from './services/data.service';
 
@@ -22,7 +22,7 @@ export class AppComponent implements AfterViewInit {
     // this.dataservice.getBarDistribution().subscribe((geojson: FeatureCollection) => {
     //  this.mapcomponent.addGeoJSON(geojson);
     // });
-    
+
     /**
      * Test Routing Process
      * Konstanz [47.6779, 9.1732], Stuttgart [48.7758, 9.1829], Dresden [51.0504, 13.7373]
@@ -60,8 +60,8 @@ export class AppComponent implements AfterViewInit {
     }, ];
 
     // Get route path and display in the map
-    this.dataservice.getRoute('driving-car', testCor).subscribe((geojson: GeoJSON) => {
-      this.mapcomponent.addRoutePath(geojson);
+    this.dataservice.getRoute('driving-car', testCor).subscribe((featureCollection: FeatureCollection) => {
+      this.mapcomponent.addRoutePath(featureCollection);
       this.mapcomponent.addWayPoints(testWayPoints);
     });
 

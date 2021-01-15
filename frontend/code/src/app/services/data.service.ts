@@ -1,7 +1,7 @@
 import {Injectable} from '@angular/core';
 import {HttpClient, HttpHeaders} from '@angular/common/http';
 import {Observable} from 'rxjs';
-import {FeatureCollection, GeoJSON, Geometry} from 'geojson';
+import {FeatureCollection, Geometry} from 'geojson';
 
 const httpOptions = {
   headers: new HttpHeaders({
@@ -46,7 +46,7 @@ export class DataService {
     return this.http.post<any>(url, {station, distance}, httpOptions);
   }
 
-  public getRoute(profile: string, coordinates: number[][]): Observable<GeoJSON> {
+  public getRoute(profile: string, coordinates: number[][]): Observable<FeatureCollection> {
     const url = this.baseUrl + 'route';
     return this.http.post<any>(url, {profile, coordinates}, httpOptions);
   }
