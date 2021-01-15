@@ -1,7 +1,7 @@
 /// <reference types='leaflet-sidebar-v2' />
-import {Component, Input, OnInit} from '@angular/core';
+import {Component, EventEmitter, Input, Output} from '@angular/core';
 import {Feature, FeatureCollection, Geometry} from 'geojson';
-import {GeoJSON, Icon, Layer, LayerGroup, Map, Marker, Polyline, SidebarOptions, TileLayer} from 'leaflet';
+import {GeoJSON, Icon, latLng, Layer, LayerGroup, Map, Marker, Polyline, tileLayer} from 'leaflet';
 import * as d3 from 'd3';
 import {extract} from './leaflet-geometryutil.js';
 
@@ -10,22 +10,49 @@ import {extract} from './leaflet-geometryutil.js';
   templateUrl: './map.component.html',
   styleUrls: ['./map.component.scss'],
 })
-export class MapComponent implements OnInit {
+export class MapComponent {
+  @Output() map$: EventEmitter<Map> = new EventEmitter();
   public map!: Map;
-  private amenitiesLayer: LayerGroup = new LayerGroup();
 
-  public sidebarOptions: SidebarOptions = {
-    position: 'left',
-    autopan: true,
-    closeButton: true,
-    container: 'sidebar',
+  options = {
+    layers: [
+      tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution:
+          '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+      })
+    ],
+    zoom: 10,
+    center: latLng(48.13, 8.20)
   };
+
+  private amenitiesLayer: LayerGroup = new LayerGroup();
 
   private _amenities: {
     name: string;
     latitude: number;
     longitude: number;
   }[] = [];
+
+  public onMapReady(map: Map): void {
+    this.map = map;
+    this.map$.emit(map);
+    // some settings for a nice shadows, etc.
+    const iconRetinaUrl = './assets/marker-icon-2x.png';
+    const iconUrl = './assets/marker-icon.png';
+    const shadowUrl = './assets/marker-shadow.png';
+    const iconDefault = new Icon({
+      iconRetinaUrl,
+      iconUrl,
+      shadowUrl,
+      iconSize: [25, 41],
+      iconAnchor: [12, 41],
+      popupAnchor: [1, -34],
+      tooltipAnchor: [16, -28],
+      shadowSize: [41, 41],
+    });
+
+    Marker.prototype.options.icon = iconDefault;
+  }
 
   get amenities(): { name: string; latitude: number; longitude: number }[] {
     return this._amenities;
@@ -39,7 +66,7 @@ export class MapComponent implements OnInit {
     this.updateAmenitiesLayer();
   }
 
-  private updateAmenitiesLayer() {
+  private updateAmenitiesLayer(): void {
     if (!this.map) {
       return;
     }
@@ -59,38 +86,7 @@ export class MapComponent implements OnInit {
   }
 
   /**
-   * Often divs and other HTML element are not available in the constructor. Thus we use onInit()
-   */
-  ngOnInit(): void {
-    // some settings for a nice shadows, etc.
-    const iconRetinaUrl = './assets/marker-icon-2x.png';
-    const iconUrl = './assets/marker-icon.png';
-    const shadowUrl = './assets/marker-shadow.png';
-    const iconDefault = new Icon({
-      iconRetinaUrl,
-      iconUrl,
-      shadowUrl,
-      iconSize: [25, 41],
-      iconAnchor: [12, 41],
-      popupAnchor: [1, -34],
-      tooltipAnchor: [16, -28],
-      shadowSize: [41, 41],
-    });
-
-    Marker.prototype.options.icon = iconDefault;
-
-    // basic setup, create a map in the div with the id "map"
-    this.map = new Map('map').setView([48.12, 8.2], 10);
-
-    // set a tilelayer, e.g. a world map in the background
-    new TileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      attribution:
-        '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
-    }).addTo(this.map);
-  }
-
-  /**
-   * Add a GeoJSON FeatureCollection to this map
+   * Add a GeoJSON FeatureCollection to this map.
    */
   public addGeoJSON(geojson: FeatureCollection): void {
     // find maximum numbars value in array
@@ -212,40 +208,41 @@ export class MapComponent implements OnInit {
     //   "opacity": 0.65
     // }
 
-    const styles = function(feature) {
+    const styles = (feature: { properties: { type: any; }; }) => {
       console.log(feature);
       switch (feature.properties.type) {
         case 'Whole Route':
           return {
-            'color': '#000000',
-            'weight': 8,
-            'opacity': 0.2
+            color: '#000000',
+            weight: 8,
+            opacity: 0.2
           };
 
         case 'Danger Segment':
           return {
-            'color': '#ff7800',
-            'weight': 5,
-            'opacity': 0.65
+            color: '#ff7800',
+            weight: 5,
+            opacity: 0.65
           };
 
         case 'Safe Segment':
           return {
-            'color': '#03fc94',
-            'weight': 5,
-            'opacity': 0.65
+            color: '#03fc94',
+            weight: 5,
+            opacity: 0.65
           };
 
         default:
           return {
-            'color': '#ff7800',
-            'weight': 5,
-            'opacity': 0.65
+            color: '#ff7800',
+            weight: 5,
+            opacity: 0.65
           };
       }
     };
-    const geoJSON = L.geoJSON(processedFC, {
-      'style': styles,
+    const geoJSON = new GeoJSON(processedFC, {
+      // TODO TS error
+      style: styles,
     });
     geoJSON.addTo(this.map);
     // console.log('setView:', features.bbox);
