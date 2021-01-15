@@ -1,7 +1,7 @@
 /// <reference types='leaflet-sidebar-v2' />
 import {Component, Input, OnInit} from '@angular/core';
 import {Feature, FeatureCollection, Geometry} from 'geojson';
-import {GeoJSON, Icon, Layer, LayerGroup, Map, Marker, Polyline, SidebarOptions, TileLayer} from 'leaflet';
+import {GeoJSON, Icon, Layer, LayerGroup, Map, Marker, Polyline, SidebarOptions, TileLayer, LatLng} from 'leaflet';
 import * as d3 from 'd3';
 import {extract} from './leaflet-geometryutil.js';
 
@@ -146,8 +146,8 @@ export class MapComponent implements OnInit {
     geoJSON.addTo(this.map);
   }
 
-  public handleRoute(fc: FeatureCollection, maxRange: number = 300000, dangerBattery: number = 0.2): FeatureCollection {
-    const wholeRoute = fc.features[0];
+  public handleRoute(featureCollection: FeatureCollection, maxRange: number = 300000, dangerBattery: number = 0.2): FeatureCollection {
+    const wholeRoute = featureCollection.features[0] as Feature;
     // TODO: TS data safety check
     wholeRoute.properties.type = 'Whole Route';
     const wholeRouteLine = new Polyline(wholeRoute.geometry.coordinates);
@@ -186,8 +186,8 @@ export class MapComponent implements OnInit {
       ssGeoJSON.geometry.coordinates = ssCors;
       ssGeoJSON.properties.type = 'Safe Segment';
 
-      fc.features.push(dsGeoJSON);
-      fc.features.push(ssGeoJSON);
+      featureCollection.features.push(dsGeoJSON);
+      featureCollection.features.push(ssGeoJSON);
     }
 
     // safe segment (ss)
@@ -196,15 +196,15 @@ export class MapComponent implements OnInit {
       const ssGeoJSON = wholeRouteLine.toGeoJSON();
       ssGeoJSON.geometry.coordinates = wholeRoute.geometry.coordinates;
       ssGeoJSON.properties.type = 'Safe Segment';
-      fc.features.push(ssGeoJSON);
+      featureCollection.features.push(ssGeoJSON);
     }
 
     // fc.features = fc.features.slice(1, 3);
-    return fc;
+    return featureCollection;
   }
 
-  public addRoutePath(fc: FeatureCollection): void {
-    const processedFC = this.handleRoute(fc);
+  public addRoutePath(featureCollection: FeatureCollection): void {
+    const processedFC = this.handleRoute(featureCollection);
     console.log('addRoutePath:', processedFC);
     // const style = {
     //   "color": "#ff7800",
@@ -244,7 +244,7 @@ export class MapComponent implements OnInit {
           };
       }
     };
-    const geoJSON = L.geoJSON(processedFC, {
+    const geoJSON = new GeoJSON(processedFC, {
       'style': styles,
     });
     geoJSON.addTo(this.map);
@@ -272,5 +272,10 @@ export class MapComponent implements OnInit {
     console.log('addIsochrones:', features);
     const geoJSON = new GeoJSON(features);
     geoJSON.addTo(this.map);
+  }
+
+  public addStations(stations: JSON): void {
+    // console.log('addStations:', stations);
+    // const geoJSON = new JSON(stations)
   }
 }

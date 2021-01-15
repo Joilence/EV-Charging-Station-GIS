@@ -37,7 +37,8 @@ export class AppComponent implements AfterViewInit {
     ];
 
     // TODO: function to construct way_points
-    const testWayPoints = [{
+    const wayPoints: FeatureCollection = {'type': 'FeatureCollection', 'features': []}
+    wayPoints.features = [{
       type: 'Feature',
       properties: {
         name: 'departure place',
@@ -57,25 +58,30 @@ export class AppComponent implements AfterViewInit {
         type: 'Point',
         coordinates: testCor[1]
       }
-    }, ];
+    }, ]
 
     // Get route path and display in the map
     this.dataservice.getRoute('driving-car', testCor).subscribe((featureCollection: FeatureCollection) => {
       this.mapcomponent.addRoutePath(featureCollection);
-      this.mapcomponent.addWayPoints(testWayPoints);
+      this.mapcomponent.addWayPoints(wayPoints);
     });
 
     // User Action 2: Select points along the path and show isochrones with stations
 
-    const testForIC = {
-      locations: [[8.681495, 49.41461],
-                    [8.687872, 49.420318]],
-      range: [300]
+    // select stuttgart
+    const selectedPoint = {
+      location: [[9.1829, 48.7758]],
+      range: [10000]
     };
 
-    this.dataservice.getIsochrones(testForIC.locations, 'distance', testForIC.range).subscribe((features: FeatureCollection) => {
-      this.mapcomponent.addIsochrones(features);
+    this.dataservice.getIsochrones(selectedPoint.location, 'distance', selectedPoint.range).subscribe((featureCollection: FeatureCollection) => {
+      this.mapcomponent.addIsochrones(featureCollection);
     });
+
+    // this.dataservice.getStations(selectedPoint.location, selectedPoint.range).subscribe((featureCollection: JSON) => {
+    //   console.log('getStations:', featureCollection);
+    //   this.mapcomponent.addStations(featureCollection);
+    // })
 
     // User Action 3: Select stations and re-route
     testCor = [

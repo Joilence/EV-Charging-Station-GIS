@@ -1,7 +1,7 @@
 import {Injectable} from '@angular/core';
 import {HttpClient, HttpHeaders} from '@angular/common/http';
 import {Observable} from 'rxjs';
-import {FeatureCollection, Geometry} from 'geojson';
+import {Feature, FeatureCollection, GeoJSON, Geometry} from 'geojson';
 
 const httpOptions = {
   headers: new HttpHeaders({
@@ -51,7 +51,7 @@ export class DataService {
     return this.http.post<any>(url, {profile, coordinates}, httpOptions);
   }
 
-  public getIsochrones(locations: number[][], rangeType: string, range: number[]): Observable<any> {
+  public getIsochrones(locations: number[][], rangeType: string, range: number[]): Observable<FeatureCollection> {
     const url = this.baseUrl + 'isochrones';
     return this.http.post<any>(url, {locations, 'range_type': rangeType, range}, httpOptions);
   }
