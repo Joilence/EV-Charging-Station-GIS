@@ -246,7 +246,10 @@ def parseStations(queryResults):
                 "lat": s["y"],
                 "lng": s["x"]
             },
-            "geometry": s["geom"] #probably need cast to str
+            "geometry": {
+                "type": "Point",
+                "coordinates": [s["x"], s["y"]]
+            }
         })
     return stations_geojson
 
