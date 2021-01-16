@@ -35,7 +35,7 @@ export class RoutingService {
       if (feature.properties && feature.properties.type === 'Destination')
         feature.properties.order = 99;
     })
-    console.log('processed locations:', locations);
+    // console.log('processed locations:', locations);
     this.wayPoints = locations;
   }
 
@@ -46,7 +46,7 @@ export class RoutingService {
     })
     // console.log('getCurrentRoute(): features:', features);
     const locations = Array.from(features, e => e.geometry.coordinates)
-    console.log('extract locations for getCurrentRoute():', locations);
+    // console.log('extract locations for getCurrentRoute():', locations);
     const routeObs = this.dataservice.getRoute('driving-car', locations);
     // console.log('route:', route);
     return routeObs;

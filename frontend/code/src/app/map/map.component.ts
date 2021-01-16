@@ -165,7 +165,7 @@ export class MapComponent implements OnInit {
     let isDanger = false;
     const segments = wholeRoute.properties.segments;
     const lastSegmentDistance = segments[segments.length - 1].distance;
-    console.log('lastSegmentDistance: ', lastSegmentDistance);
+    // console.log('lastSegmentDistance: ', lastSegmentDistance);
     if (lastSegmentDistance > maxRange * (1 - dangerBattery)) {
       isDanger = true;
       const previousSegmentsDistance = wholeRouteDistance - lastSegmentDistance;
@@ -183,7 +183,7 @@ export class MapComponent implements OnInit {
       const dsGeoJSON = dsLine.toGeoJSON();
       dsGeoJSON.geometry.coordinates = dsCors;
       dsGeoJSON.properties.type = 'Danger Segment';
-      console.log('Danger Segment:', dsGeoJSON);
+      // console.log('Danger Segment:', dsGeoJSON);
       // TODO: ugly code fix
       const ssCors = Array.from(extract(this.map, wholeRouteLine, 0, dsStartPercent), e => {
         return [e.lat, e.lng];
@@ -213,10 +213,10 @@ export class MapComponent implements OnInit {
   public addRoutePath(routeObs: Observable<FeatureCollection>): void {
     routeObs.subscribe((route: FeatureCollection) => {
       const processedRoute = this.handleRoute(route);
-      console.log('addRoutePath:', processedRoute);
+      console.log('addRoutePath: processed route', processedRoute);
 
       const styles = function (feature) {
-        console.log(feature);
+        // console.log(feature);
         switch (feature.properties.type) {
           case 'Whole Route':
             return {
@@ -271,7 +271,7 @@ export class MapComponent implements OnInit {
   }
 
   public addIsochrones(features: FeatureCollection): void {
-    console.log('addIsochrones:', features);
+    // console.log('addIsochrones:', features);
     const geoJSON = new GeoJSON(features);
     geoJSON.addTo(this.map);
   }
