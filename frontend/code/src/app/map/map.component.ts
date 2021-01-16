@@ -65,6 +65,28 @@ export class MapComponent {
 
   /**
    *  #######################################################################
+   *  ########################### Exposed API ###############################
+   *  #######################################################################
+   */
+
+  public initDepDest(initLocations: FeatureCollection): void {
+    this.routingService.initDepDest(initLocations)
+  }
+
+  public route(): void {
+    this.addRoutePath(this.routingService.getCurrentRoute());
+  }
+
+  public setMaxRange(maxRange: number): void {
+    this.routingService.maxRange = maxRange;
+  }
+
+  public addNewStation(station: Feature): void {
+    this.routingService.addNewStation(station);
+  }
+
+  /**
+   *  #######################################################################
    *  ############################### Routes ################################
    *  #######################################################################
    */

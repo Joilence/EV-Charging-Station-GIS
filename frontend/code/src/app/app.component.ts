@@ -3,7 +3,6 @@ import {Component, ElementRef, ViewChild} from '@angular/core';
 import {Feature, FeatureCollection} from 'geojson';
 import {MapComponent} from './map/map.component';
 import {DataService} from './services/data.service';
-import {RoutingService} from './services/routing.service';
 import {Map, SidebarOptions} from 'leaflet';
 import {SpinnerOverlayService} from './services/spinner-overlay.service';
 
@@ -36,7 +35,7 @@ export class AppComponent {
    * Services or other dependencies are often imported via dependency injection.
    * See https://angular.io/guide/dependency-injection for more details.
    */
-  constructor(private dataService: DataService, private routingService: RoutingService, private spinnerService: SpinnerOverlayService) {
+  constructor(private dataService: DataService, private spinnerService: SpinnerOverlayService) {
   }
 
   receiveMap(map: Map): void {
@@ -85,10 +84,9 @@ export class AppComponent {
           }
         }, ]
       };
-
-    this.routingService.initDepDest(initLocations);
-
-    this.mapComponent.addRoutePath(this.routingService.getCurrentRoute());
+    
+    this.mapComponent.initDepDest(initLocations);
+    this.mapComponent.route();
 
     // User Action 2: Select points along the path and show isochrones with stations
     setTimeout(() => {
@@ -117,8 +115,8 @@ export class AppComponent {
           address: 'Eichstraße 7',
         }
       };
-      this.routingService.addNewStation(selectedStation);
-      this.mapComponent.addRoutePath(this.routingService.getCurrentRoute());
+      this.mapComponent.addNewStation(selectedStation);
+      this.mapComponent.route();
     }, 5000);
   }
 
