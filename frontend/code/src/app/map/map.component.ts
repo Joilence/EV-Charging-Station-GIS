@@ -5,7 +5,6 @@ import { GeoJSON, Icon, Layer, LayerGroup, Map, Marker, Polyline, SidebarOptions
 import * as d3 from 'd3';
 import { extract } from './leaflet-geometryutil.js';
 import { RoutingService } from '../services/routing.service'
-import { Observable } from 'rxjs';
 
 @Component({
   selector: 'app-map',
