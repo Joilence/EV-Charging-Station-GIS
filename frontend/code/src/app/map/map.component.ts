@@ -5,6 +5,7 @@ import { GeoJSON, Icon, Layer, LayerGroup, Map, Marker, Polyline, SidebarOptions
 import * as d3 from 'd3';
 import { extract } from './leaflet-geometryutil.js';
 import { RoutingService } from '../services/routing.service'
+import { stat } from 'fs';
 
 @Component({
   selector: 'app-map',
@@ -259,12 +260,12 @@ export class MapComponent implements OnInit {
     });
   }
 
-  public addWayPoints(features: FeatureCollection): void {
+  public addWayPoints(wayPoints: FeatureCollection): void {
     const onEachFeature = (feature: Feature<Geometry, any>, layer: L.Layer) => {
       layer.bindPopup(`${feature.properties.type}: ${feature.properties.name}`);
     };
 
-    const geoJSON = new GeoJSON(features, {
+    const geoJSON = new GeoJSON(wayPoints, {
       onEachFeature,
     });
     geoJSON.addTo(this.map);
@@ -276,8 +277,15 @@ export class MapComponent implements OnInit {
     geoJSON.addTo(this.map);
   }
 
-  public addStations(stations: JSON): void {
-    // console.log('addStations:', stations);
-    // const geoJSON = new JSON(stations)
+  public addStations(stations: FeatureCollection): void {
+    console.log('addStations:', stations);
+    const onEachFeature = (feature: Feature<Geometry, any>, layer: L.Layer) => {
+      layer.bindPopup(`${feature.properties.type}: ${feature.properties.address}`);
+    };
+
+    const geoJSON = new GeoJSON(stations, {
+      onEachFeature,
+    });
+    geoJSON.addTo(this.map);
   }
 }

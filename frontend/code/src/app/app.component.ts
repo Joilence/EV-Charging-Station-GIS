@@ -70,16 +70,23 @@ export class AppComponent implements AfterViewInit {
     });
 
     this.dataservice.getStations(selectedPoint.location, selectedPoint.range).subscribe((stations: FeatureCollection) => {
-      console.log('getStations:', stations);
-      // this.mapcomponent.addStations(stations);
+      this.mapcomponent.addStations(stations);
     })
 
-    // // User Action 3: Select stations and re-route
-    // testCor = [
-    //   [9.1732, 47.6779], // Konstanz
-    //   [9.1829, 48.7758], // After 107km, Stuttgart
-    //   [13.7373, 51.0504], // After 507km, Dresden
-    // ];
-
+    // User Action 3: Select stations and re-route
+    setTimeout(() => {
+      const selectedStation: Feature = {
+        'type': 'Feature',
+        'geometry': {
+          'type': 'Point',
+          'coordinates': [9.178289, 48.774372],
+        },
+        'properties': {
+          'address': 'Eichstraße 7',
+        }
+      }
+      this.routingservice.addNewStation(selectedStation);
+      this.mapcomponent.addRoutePath(this.routingservice.getCurrentRoute());
+    }, 3000);
   }
 }
