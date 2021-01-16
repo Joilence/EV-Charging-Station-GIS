@@ -36,7 +36,7 @@ export class AppComponent {
    * Services or other dependencies are often imported via dependency injection.
    * See https://angular.io/guide/dependency-injection for more details.
    */
-  constructor(private dataservice: DataService, private routingservice: RoutingService, private spinnerService: SpinnerOverlayService) {
+  constructor(private dataService: DataService, private routingService: RoutingService, private spinnerService: SpinnerOverlayService) {
   }
 
   receiveMap(map: Map): void {
@@ -86,9 +86,9 @@ export class AppComponent {
         }, ]
       };
 
-    this.routingservice.initDepDest(initLocations);
+    this.routingService.initDepDest(initLocations);
 
-    this.mapComponent.addRoutePath(this.routingservice.getCurrentRoute());
+    this.mapComponent.addRoutePath(this.routingService.getCurrentRoute());
 
     // User Action 2: Select points along the path and show isochrones with stations
     setTimeout(() => {
@@ -96,11 +96,11 @@ export class AppComponent {
         location: [[9.1829, 48.7758]], // Stuttgart
         range: [10000]
       };
-      this.dataservice.getIsochrones(selectedPoint.location, 'distance', selectedPoint.range).subscribe((isochrones: FeatureCollection) => {
+      this.dataService.getIsochrones(selectedPoint.location, 'distance', selectedPoint.range).subscribe((isochrones: FeatureCollection) => {
         this.mapComponent.addIsochrones(isochrones);
       });
 
-      this.dataservice.getStations(selectedPoint.location, selectedPoint.range).subscribe((stations: FeatureCollection) => {
+      this.dataService.getStations(selectedPoint.location, selectedPoint.range).subscribe((stations: FeatureCollection) => {
         this.mapComponent.addStations(stations);
       });
     }, 3000);
@@ -117,8 +117,8 @@ export class AppComponent {
           address: 'Eichstraße 7',
         }
       };
-      this.routingservice.addNewStation(selectedStation);
-      this.mapComponent.addRoutePath(this.routingservice.getCurrentRoute());
+      this.routingService.addNewStation(selectedStation);
+      this.mapComponent.addRoutePath(this.routingService.getCurrentRoute());
     }, 5000);
   }
 
