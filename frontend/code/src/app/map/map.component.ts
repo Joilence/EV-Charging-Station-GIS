@@ -13,7 +13,7 @@ import {Observable} from 'rxjs';
 })
 export class MapComponent {
 
-  constructor(private routingservice: RoutingService) {
+  constructor(private routingService: RoutingService) {
 
   }
 
@@ -44,6 +44,7 @@ export class MapComponent {
   public onMapReady(map: Map): void {
     this.map = map;
     this.map$.emit(map);
+    this.routingService.setMap(this.map);
     // some settings for a nice shadows, etc.
     const iconRetinaUrl = './assets/marker-icon-2x.png';
     const iconUrl = './assets/marker-icon.png';
@@ -69,8 +70,8 @@ export class MapComponent {
    */
 
   public handleRoute(featureCollection: FeatureCollection): FeatureCollection {
-    const maxRange = this.routingservice.maxRange;
-    const dangerBattery = this.routingservice.dangerBattery;
+    const maxRange = this.routingService.maxRange;
+    const dangerBattery = this.routingService.dangerBattery;
     const wholeRoute = featureCollection.features[0] as Feature;
     // TODO: TS data safety check
     wholeRoute.properties.type = 'Whole Route';
@@ -180,7 +181,7 @@ export class MapComponent {
     routeGeoJSON.addTo(this.routeLayerGroup);
     this.routeLayerGroup.addTo(this.map);
     this.map.fitBounds(routeGeoJSON.getBounds());
-    this.addWayPoints(this.routingservice.getCurrentWayPoints());
+    this.addWayPoints(this.routingService.getCurrentWayPoints());
   }
 
   /**

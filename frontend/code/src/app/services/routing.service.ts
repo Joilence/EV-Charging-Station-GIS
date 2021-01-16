@@ -2,12 +2,15 @@ import {Injectable} from '@angular/core';
 import {Feature, FeatureCollection} from 'geojson';
 import {DataService} from './data.service';
 import {Observable} from 'rxjs';
+import {Map} from 'leaflet';
 
 @Injectable({
   providedIn: 'root',
 })
 export class RoutingService {
-  constructor(private dataservice: DataService) {
+  private map!: Map;
+
+  constructor(private dataService: DataService) {
 
   }
 
@@ -47,12 +50,16 @@ export class RoutingService {
     // console.log('getCurrentRoute(): features:', features);
     const locations = Array.from(features, e => e.geometry.coordinates);
     // console.log('extract locations for getCurrentRoute():', locations);
-    const routeObs = this.dataservice.getRoute('driving-car', locations);
+    const routeObs = this.dataService.getRoute('driving-car', locations);
     // console.log('route:', route);
     return routeObs;
   }
 
   public getCurrentWayPoints(): FeatureCollection {
     return this.wayPoints;
+  }
+
+  public setMap(map: Map): void {
+    this.map = map;
   }
 }
