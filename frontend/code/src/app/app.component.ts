@@ -4,6 +4,7 @@ import {Map, SidebarOptions} from 'leaflet';
 import {FeatureCollection} from 'geojson';
 import {MapComponent} from './map/map.component';
 import {DataService} from './services/data.service';
+import {SpinnerOverlayService} from './services/spinner-overlay.service';
 
 @Component({
   selector: 'app-root',
@@ -34,7 +35,7 @@ export class AppComponent implements AfterContentInit {
    * Services or other dependencies are often imported via dependency injection.
    * See https://angular.io/guide/dependency-injection for more details.
    */
-  constructor(private dataservice: DataService) {
+  constructor(private dataservice: DataService, private spinnerService: SpinnerOverlayService) {
   }
 
   receiveMap(map: Map): void {
@@ -114,5 +115,9 @@ export class AppComponent implements AfterContentInit {
     console.log(this.inputStart.nativeElement.value);
     console.log(this.inputTarget.nativeElement.value);
     console.log(this.inputRange.nativeElement.value);
+    this.spinnerService.show();
+    setTimeout(() => {
+      this.spinnerService.hide();
+    }, 2000);
   }
 }
