@@ -1,9 +1,11 @@
 /// <reference types='leaflet-sidebar-v2' />
-import {Component, Input, OnInit} from '@angular/core';
-import {Feature, FeatureCollection, Geometry} from 'geojson';
-import {GeoJSON, Icon, Layer, LayerGroup, Map, Marker, Polyline, SidebarOptions, TileLayer, LatLng} from 'leaflet';
+import { Component, Input, OnInit } from '@angular/core';
+import { Feature, FeatureCollection, Geometry } from 'geojson';
+import { GeoJSON, Icon, Layer, LayerGroup, Map, Marker, Polyline, SidebarOptions, TileLayer, LatLng, PathOptions, StyleFunction } from 'leaflet';
 import * as d3 from 'd3';
-import {extract} from './leaflet-geometryutil.js';
+import { extract } from './leaflet-geometryutil.js';
+import { RoutingService } from '../services/routing.service'
+import { Observable } from 'rxjs';
 
 @Component({
   selector: 'app-map',
@@ -11,6 +13,10 @@ import {extract} from './leaflet-geometryutil.js';
   styleUrls: ['./map.component.scss'],
 })
 export class MapComponent implements OnInit {
+
+  constructor(private routingservice: RoutingService) {
+
+  }
   public map!: Map;
   private amenitiesLayer: LayerGroup = new LayerGroup();
 
@@ -146,7 +152,9 @@ export class MapComponent implements OnInit {
     geoJSON.addTo(this.map);
   }
 
-  public handleRoute(featureCollection: FeatureCollection, maxRange: number = 300000, dangerBattery: number = 0.2): FeatureCollection {
+  public handleRoute(featureCollection: FeatureCollection): FeatureCollection {
+    const maxRange = this.routingservice.maxRange;
+    const dangerBattery = this.routingservice.dangerBattery;
     const wholeRoute = featureCollection.features[0] as Feature;
     // TODO: TS data safety check
     wholeRoute.properties.type = 'Whole Route';
@@ -203,58 +211,53 @@ export class MapComponent implements OnInit {
     return featureCollection;
   }
 
-  public addRoutePath(featureCollection: FeatureCollection): void {
-    const processedFC = this.handleRoute(featureCollection);
-    console.log('addRoutePath:', processedFC);
-    // const style = {
-    //   "color": "#ff7800",
-    //   "weight": 5,
-    //   "opacity": 0.65
-    // }
+  public addRoutePath(routeObs: Observable<FeatureCollection>): void {
+    routeObs.subscribe((route: FeatureCollection) => {
+      const processedRoute = this.handleRoute(route);
+      console.log('addRoutePath:', processedRoute);
 
-    const styles = function(feature) {
-      console.log(feature);
-      switch (feature.properties.type) {
-        case 'Whole Route':
-          return {
-            'color': '#000000',
-            'weight': 8,
-            'opacity': 0.2
-          };
+      const styles = function (feature) {
+        console.log(feature);
+        switch (feature.properties.type) {
+          case 'Whole Route':
+            return {
+              'color': '#000000',
+              'weight': 8,
+              'opacity': 0.2
+            };
 
-        case 'Danger Segment':
-          return {
-            'color': '#ff7800',
-            'weight': 5,
-            'opacity': 0.65
-          };
+          case 'Danger Segment':
+            return {
+              'color': '#ff7800',
+              'weight': 5,
+              'opacity': 0.65
+            };
 
-        case 'Safe Segment':
-          return {
-            'color': '#03fc94',
-            'weight': 5,
-            'opacity': 0.65
-          };
+          case 'Safe Segment':
+            return {
+              'color': '#03fc94',
+              'weight': 5,
+              'opacity': 0.65
+            };
 
-        default:
-          return {
-            'color': '#ff7800',
-            'weight': 5,
-            'opacity': 0.65
-          };
+          default:
+            return {
+              'color': '#ff7800',
+              'weight': 5,
+              'opacity': 0.65
+            };
+        }
+      };
+      const geoJSON = new GeoJSON(processedRoute, {
+        'style': styles,
+      });
+      geoJSON.addTo(this.map);
+      // console.log('setView:', features.bbox);
+      const bbox = processedRoute.bbox;
+      if (bbox) {
+        this.map.fitBounds([[bbox[1], bbox[0]], [bbox[3], bbox[2]]]);
       }
-    };
-    const geoJSON = new GeoJSON(processedFC, {
-      'style': styles,
     });
-    geoJSON.addTo(this.map);
-    // console.log('setView:', features.bbox);
-    const bbox = processedFC.bbox;
-    if (bbox) {
-      this.map.fitBounds([[bbox[1], bbox[0]], [bbox[3], bbox[2]]]);
-    }
-
-    // way points will be depature, destination and selected stations with related info, maybe added by other functions
   }
 
   public addWayPoints(features: FeatureCollection): void {
