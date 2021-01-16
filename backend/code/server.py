@@ -241,6 +241,7 @@ def parseStations(queryResults):
             "type": "Feature",
             "id": s["objectid"],
             "properties":{
+                "type": "Station",
                 "address": s["adresse"],
                 "city": s["postleitzahl_ort"],
                 "lat": s["y"],

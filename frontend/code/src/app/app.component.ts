@@ -69,16 +69,10 @@ export class AppComponent implements AfterViewInit {
       this.mapcomponent.addIsochrones(isochrones);
     });
 
-    // this.routingservice.addNewStation()
-
-    // this.dataservice.getIsochrones(selectedPoint.location, 'distance', selectedPoint.range).subscribe((featureCollection: FeatureCollection) => {
-    //   this.mapcomponent.addIsochrones(featureCollection);
-    // });
-
-    // // this.dataservice.getStations(selectedPoint.location, selectedPoint.range).subscribe((featureCollection: JSON) => {
-    // //   console.log('getStations:', featureCollection);
-    // //   this.mapcomponent.addStations(featureCollection);
-    // // })
+    this.dataservice.getStations(selectedPoint.location, selectedPoint.range).subscribe((stations: FeatureCollection) => {
+      console.log('getStations:', stations);
+      // this.mapcomponent.addStations(stations);
+    })
 
     // // User Action 3: Select stations and re-route
     // testCor = [
