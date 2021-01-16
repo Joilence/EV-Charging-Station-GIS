@@ -25,9 +25,13 @@ export class AppComponent implements AfterViewInit {
     // });
 
     /**
-     * Test Routing Process
+     *  #######################################################################
+     *  ############################ Test Process #############################
+     *  #######################################################################
+     *
      * Konstanz [47.6779, 9.1732], Stuttgart [48.7758, 9.1829], Dresden [51.0504, 13.7373]
      */
+
      // User Action 1: input from Konstanz to Dresden
     const initLocations: FeatureCollection = {
       type: 'FeatureCollection',
@@ -58,20 +62,20 @@ export class AppComponent implements AfterViewInit {
     
     this.mapcomponent.addRoutePath(this.routingservice.getCurrentRoute());
 
-    this.mapcomponent.addWayPoints(this.routingservice.getCurrentWayPoints());
-
     // User Action 2: Select points along the path and show isochrones with stations
-    const selectedPoint = {
-      location: [[9.1829, 48.7758]], // Stuttgart
-      range: [10000]
-    };
-    this.dataservice.getIsochrones(selectedPoint.location, 'distance', selectedPoint.range).subscribe((isochrones: FeatureCollection) => {
-      this.mapcomponent.addIsochrones(isochrones);
-    });
-
-    this.dataservice.getStations(selectedPoint.location, selectedPoint.range).subscribe((stations: FeatureCollection) => {
-      this.mapcomponent.addStations(stations);
-    })
+    setTimeout(() => {
+      const selectedPoint = {
+        location: [[9.1829, 48.7758]], // Stuttgart
+        range: [10000]
+      };
+      this.dataservice.getIsochrones(selectedPoint.location, 'distance', selectedPoint.range).subscribe((isochrones: FeatureCollection) => {
+        this.mapcomponent.addIsochrones(isochrones);
+      });
+  
+      this.dataservice.getStations(selectedPoint.location, selectedPoint.range).subscribe((stations: FeatureCollection) => {
+        this.mapcomponent.addStations(stations);
+      })
+    }, 3000)
 
     // User Action 3: Select stations and re-route
     setTimeout(() => {
@@ -87,6 +91,6 @@ export class AppComponent implements AfterViewInit {
       }
       this.routingservice.addNewStation(selectedStation);
       this.mapcomponent.addRoutePath(this.routingservice.getCurrentRoute());
-    }, 3000);
+    }, 5000);
   }
 }

@@ -1,11 +1,9 @@
 /// <reference types='leaflet-sidebar-v2' />
 import { Component, Input, OnInit } from '@angular/core';
-import { Feature, FeatureCollection, Geometry } from 'geojson';
+import { Feature, FeatureCollection, GeoJsonGeometryTypes, Geometry } from 'geojson';
 import { GeoJSON, Icon, Layer, LayerGroup, Map, Marker, Polyline, SidebarOptions, TileLayer, LatLng, PathOptions, StyleFunction } from 'leaflet';
-import * as d3 from 'd3';
 import { extract } from './leaflet-geometryutil.js';
 import { RoutingService } from '../services/routing.service'
-import { stat } from 'fs';
 
 @Component({
   selector: 'app-map',
@@ -17,8 +15,28 @@ export class MapComponent implements OnInit {
   constructor(private routingservice: RoutingService) {
 
   }
+
+  /**
+   *  #######################################################################
+   *  ############################ Map & Layers #############################
+   *  #######################################################################
+   */
+
   public map!: Map;
-  private amenitiesLayer: LayerGroup = new LayerGroup();
+  private tileMapLayer: TileLayer = new TileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    attribution:
+      '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+  });
+  private routeLayerGroup: LayerGroup = new LayerGroup();
+  private wayPointsLayerGroup: LayerGroup = new LayerGroup();
+  private stationsLayerGroup: LayerGroup = new LayerGroup();
+  private isochronesLayerGroup: LayerGroup = new LayerGroup();
+
+  /**
+   *  #######################################################################
+   *  ############################## Side Bar ###############################
+   *  #######################################################################
+   */
 
   public sidebarOptions: SidebarOptions = {
     position: 'left',
@@ -26,43 +44,6 @@ export class MapComponent implements OnInit {
     closeButton: true,
     container: 'sidebar',
   };
-
-  private _amenities: {
-    name: string;
-    latitude: number;
-    longitude: number;
-  }[] = [];
-
-  get amenities(): { name: string; latitude: number; longitude: number }[] {
-    return this._amenities;
-  }
-
-  @Input()
-  set amenities(
-    value: { name: string; latitude: number; longitude: number }[]
-  ) {
-    this._amenities = value;
-    this.updateAmenitiesLayer();
-  }
-
-  private updateAmenitiesLayer() {
-    if (!this.map) {
-      return;
-    }
-
-    // remove old amenities
-    this.map.removeLayer(this.amenitiesLayer);
-
-    // create a marker for each supplied amenity
-    const markers = this.amenities.map((a) =>
-      new Marker([a.latitude, a.longitude]).bindPopup(a.name)
-    );
-
-    // create a new layer group and add it to the map
-    this.amenitiesLayer = new LayerGroup(markers);
-    markers.forEach((m) => m.addTo(this.amenitiesLayer));
-    this.map.addLayer(this.amenitiesLayer);
-  }
 
   /**
    * Often divs and other HTML element are not available in the constructor. Thus we use onInit()
@@ -89,68 +70,14 @@ export class MapComponent implements OnInit {
     this.map = new Map('map').setView([48.12, 8.2], 10);
 
     // set a tilelayer, e.g. a world map in the background
-    new TileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      attribution:
-        '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
-    }).addTo(this.map);
+    this.tileMapLayer.addTo(this.map);
   }
 
   /**
-   * Add a GeoJSON FeatureCollection to this map
+   *  #######################################################################
+   *  ############################### Routes ################################
+   *  #######################################################################
    */
-  public addGeoJSON(geojson: FeatureCollection): void {
-    // find maximum numbars value in array
-    let max = d3.max(
-      geojson.features.map((f: Feature<Geometry, any>) => +f.properties.numbars)
-    );
-
-    // if max is undefined, enforce max = 1
-    if (!max) {
-      max = 1;
-    }
-
-    const colorscale = d3
-      .scaleSequential()
-      .domain([0, max])
-      .interpolator(d3.interpolateViridis);
-
-    // each feature has a custom style
-    const style = (feature: Feature<Geometry, any> | undefined) => {
-      const numbars = feature?.properties?.numbars
-        ? feature.properties.numbars
-        : 0;
-
-      return {
-        fillColor: colorscale(numbars),
-        weight: 2,
-        opacity: 1,
-        color: 'white',
-        dashArray: '3',
-        fillOpacity: 0.7,
-      };
-    };
-
-    // each feature gets an additional popup!
-    const onEachFeature = (feature: Feature<Geometry, any>, layer: Layer) => {
-      if (
-        feature.properties &&
-        feature.properties.name &&
-        typeof feature.properties.numbars !== 'undefined'
-      ) {
-        layer.bindPopup(
-          `${feature.properties.name} has ${feature.properties.numbars} bar${feature.properties.numbars > 0 ? 's' : ''
-          }`
-        );
-      }
-    };
-
-    // create one geoJSON layer and add it to the map
-    const geoJSON = new GeoJSON(geojson, {
-      onEachFeature,
-      style,
-    });
-    geoJSON.addTo(this.map);
-  }
 
   public handleRoute(featureCollection: FeatureCollection): FeatureCollection {
     const maxRange = this.routingservice.maxRange;
@@ -211,6 +138,7 @@ export class MapComponent implements OnInit {
     return featureCollection;
   }
 
+  // TODO: cannot find Observable but circular import
   public addRoutePath(routeObs: Observable<FeatureCollection>): void {
     routeObs.subscribe((route: FeatureCollection) => {
       const processedRoute = this.handleRoute(route);
@@ -248,34 +176,59 @@ export class MapComponent implements OnInit {
             };
         }
       };
-      const geoJSON = new GeoJSON(processedRoute, {
+      const routeGeoJSON = new GeoJSON(processedRoute, {
         'style': styles,
       });
-      geoJSON.addTo(this.map);
-      // console.log('setView:', features.bbox);
-      const bbox = processedRoute.bbox;
-      if (bbox) {
-        this.map.fitBounds([[bbox[1], bbox[0]], [bbox[3], bbox[2]]]);
-      }
+      this.removeAllStations();
+      this.removeAllIsochrones();
+      this.updateRouteLayer(routeGeoJSON);
     });
   }
 
-  public addWayPoints(wayPoints: FeatureCollection): void {
-    const onEachFeature = (feature: Feature<Geometry, any>, layer: L.Layer) => {
-      layer.bindPopup(`${feature.properties.type}: ${feature.properties.name}`);
-    };
-
-    const geoJSON = new GeoJSON(wayPoints, {
-      onEachFeature,
-    });
-    geoJSON.addTo(this.map);
+  public updateRouteLayer(routeGeoJSON: GeoJSON) {
+    this.map.removeLayer(this.routeLayerGroup);
+    this.routeLayerGroup = new LayerGroup();
+    routeGeoJSON.addTo(this.routeLayerGroup);
+    this.routeLayerGroup.addTo(this.map);
+    this.map.fitBounds(routeGeoJSON.getBounds());
+    this.addWayPoints(this.routingservice.getCurrentWayPoints());
   }
 
-  public addIsochrones(features: FeatureCollection): void {
-    // console.log('addIsochrones:', features);
-    const geoJSON = new GeoJSON(features);
-    geoJSON.addTo(this.map);
+  /**
+   *  #######################################################################
+   *  ############################# Isochrones ##############################
+   *  #######################################################################
+   */
+
+  public addIsochrones(isochrones: FeatureCollection): void {
+    // console.log('addIsochrones:', isochrones);
+    const isochronesJSON = new GeoJSON(isochrones);
+    this.updateIsochronesLayer(isochronesJSON);
   }
+
+  public updateIsochronesLayer(isochronesJSON: GeoJSON | undefined): void {
+    if (isochronesJSON) {
+      console.log('update isochrones');
+      this.map.removeLayer(this.isochronesLayerGroup);
+      this.isochronesLayerGroup = new LayerGroup();
+      isochronesJSON.addTo(this.isochronesLayerGroup);
+      this.isochronesLayerGroup.addTo(this.map);
+    } else {
+      console.log('remove isochrones');
+      this.map.removeLayer(this.isochronesLayerGroup);
+      this.isochronesLayerGroup = new LayerGroup();
+    }
+  }
+
+  public removeAllIsochrones() {
+    this.updateIsochronesLayer(undefined);
+  }
+
+  /**
+   *  #######################################################################
+   *  ############################## Stations ###############################
+   *  #######################################################################
+   */
 
   public addStations(stations: FeatureCollection): void {
     console.log('addStations:', stations);
@@ -283,9 +236,60 @@ export class MapComponent implements OnInit {
       layer.bindPopup(`${feature.properties.type}: ${feature.properties.address}`);
     };
 
-    const geoJSON = new GeoJSON(stations, {
+    const stationsGeoJSON = new GeoJSON(stations, {
       onEachFeature,
     });
-    geoJSON.addTo(this.map);
+    this.updateStationsLayer(stationsGeoJSON);
+  }
+
+  public updateStationsLayer(stationsGeoJSON: GeoJSON | undefined) {
+    if (stationsGeoJSON) {
+      console.log('add stations');
+      this.map.removeLayer(this.stationsLayerGroup);
+      this.stationsLayerGroup = new LayerGroup();
+      stationsGeoJSON.addTo(this.stationsLayerGroup);
+      this.stationsLayerGroup.addTo(this.map);
+    } else {
+      console.log('remove all stations');
+      this.map.removeLayer(this.stationsLayerGroup);
+      this.stationsLayerGroup = new LayerGroup();
+    }
+  }
+
+  public removeAllStations() {
+    this.updateStationsLayer(undefined);
+  }
+
+  /**
+   *  #######################################################################
+   *  ############################# Way Points ##############################
+   *  #######################################################################
+   */
+
+  public addWayPoints(wayPoints: FeatureCollection): void {
+    // console.log('add way points:', wayPoints);
+    const onEachFeature = (feature: Feature<Geometry, any>, layer: L.Layer) => {
+      layer.bindPopup(`${feature.properties.type}: ${feature.properties.name}`);
+    };
+    const wayPointsGeoJSON = new GeoJSON(wayPoints, {
+      onEachFeature,
+    });
+    this.updateWayPointsLayer(wayPointsGeoJSON);
+  }
+
+  public updateWayPointsLayer(wayPointsGeoJSON: GeoJSON | undefined): void {
+    if (wayPointsGeoJSON) {
+      this.map.removeLayer(this.wayPointsLayerGroup);
+      this.wayPointsLayerGroup = new LayerGroup();
+      wayPointsGeoJSON.addTo(this.wayPointsLayerGroup);
+      this.wayPointsLayerGroup.addTo(this.map);
+    } else {
+      this.map.removeLayer(this.wayPointsLayerGroup);
+      this.wayPointsLayerGroup = new LayerGroup();
+    }
+  }
+
+  public removeAllWayPoints() {
+    this.updateWayPointsLayer(undefined);
   }
 }
