@@ -60,11 +60,14 @@ export class AppComponent implements AfterViewInit {
 
     this.mapcomponent.addWayPoints(this.routingservice.getCurrentWayPoints());
 
-    // // User Action 2: Select points along the path and show isochrones with stations
-    // const selectedPoint = {
-    //   location: [[9.1829, 48.7758]], // Stuttgart
-    //   range: [10000]
-    // };
+    // User Action 2: Select points along the path and show isochrones with stations
+    const selectedPoint = {
+      location: [[9.1829, 48.7758]], // Stuttgart
+      range: [10000]
+    };
+    this.dataservice.getIsochrones(selectedPoint.location, 'distance', selectedPoint.range).subscribe((isochrones: FeatureCollection) => {
+      this.mapcomponent.addIsochrones(isochrones);
+    });
 
     // this.routingservice.addNewStation()
 
