@@ -1,5 +1,5 @@
 import { AfterViewInit, Component, ViewChild } from '@angular/core';
-import {Feature, FeatureCollection} from 'geojson';
+import { Feature, FeatureCollection } from 'geojson';
 import { MapComponent } from './map/map.component';
 import { DataService } from './services/data.service';
 import { RoutingService } from './services/routing.service'
@@ -32,7 +32,7 @@ export class AppComponent implements AfterViewInit {
      * Konstanz [47.6779, 9.1732], Stuttgart [48.7758, 9.1829], Dresden [51.0504, 13.7373]
      */
 
-     // User Action 1: input from Konstanz to Dresden
+    // User Action 1: input from Konstanz to Dresden
     const initLocations: FeatureCollection = {
       type: 'FeatureCollection',
       features: [{
@@ -55,11 +55,11 @@ export class AppComponent implements AfterViewInit {
           type: 'Point',
           coordinates: [13.7373, 51.0504], // Dresden
         }
-      }, ]
+      },]
     }
 
     this.routingservice.initDepDest(initLocations);
-    
+
     this.mapcomponent.addRoutePath(this.routingservice.getCurrentRoute());
 
     // User Action 2: Select points along the path and show isochrones with stations
@@ -71,7 +71,7 @@ export class AppComponent implements AfterViewInit {
       this.dataservice.getIsochrones(selectedPoint.location, 'distance', selectedPoint.range).subscribe((isochrones: FeatureCollection) => {
         this.mapcomponent.addIsochrones(isochrones);
       });
-  
+
       this.dataservice.getStations(selectedPoint.location, selectedPoint.range).subscribe((stations: FeatureCollection) => {
         this.mapcomponent.addStations(stations);
       })
