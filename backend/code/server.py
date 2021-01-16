@@ -199,12 +199,13 @@ def latLongToGeometry(lat, long):
 
 @app.route('/stations', methods=["POST"])
 def getStations():
-    routepoint= request.json["routepoint"]
-    distance = request.json["distance"]
+    print('request.json:', request.json)
+    routepoint= request.json["locations"]
+    distance = request.json["range"]
     stations = queryStations(routepoint, distance)
 
     return jsonify({
-        "type": "FeatureCollection", "stations": stations
+        "type": "FeatureCollection", "features": stations
     }), 200 
 
 
@@ -219,8 +220,8 @@ def queryStations(routepoint, distance):
     # WHERE ST_Distance(Geography(ST_Transform(cs.geom ,4326)), ST_GeographyFromText('{routepoint}')) < '{distance}'
     # """
     params = {
-        "locations": [routepoint],
-        "range": [distance]
+        "locations": routepoint,
+        "range": distance
     }
     iso = getIsochrones(params)["features"][0]["geometry"]
     # return iso
@@ -230,21 +231,28 @@ def queryStations(routepoint, distance):
     WHERE ST_CONTAINS(st_geomfromgeojson('{json.dumps(iso)}'), cs.geom)
     """
 
-    return appendDistance(parseStations(execQuery(query)), routepoint)
+    return appendDistance(parseStations(execQuery(query)), routepoint[0])
 
 
 def parseStations(queryResults):
-    stations=[]
+    stations_geojson=[]
     for s in queryResults:
-        stations.append({
+        stations_geojson.append({
+            "type": "Feature",
             "id": s["objectid"],
-            "address": s["adresse"],
-            "city": s["postleitzahl_ort"],
-            "lat": s["y"],
-            "lng": s["x"],
-            "geom": s["geom"] #probably need cast to str
+            "properties":{
+                "type": "Station",
+                "address": s["adresse"],
+                "city": s["postleitzahl_ort"],
+                "lat": s["y"],
+                "lng": s["x"]
+            },
+            "geometry": {
+                "type": "Point",
+                "coordinates": [s["x"], s["y"]]
+            }
         })
-    return stations
+    return stations_geojson
 
 def appendDistance(queryResult, routepoint):
     #compute distance routepoint->station
@@ -252,48 +260,51 @@ def appendDistance(queryResult, routepoint):
         params = {
             "coordinates":[
                 [routepoint[0], routepoint[1]],
-                [s["lng"], s["lat"]]
+                [s["properties"]["lng"], s["properties"]["lat"]]
                 # ,[r["lng"], r["lat"]]
             ]
         }
-        s["distance"] = getRoute(params)["features"][0]["properties"]["summary"]["distance"]
+        s["properties"]["distance"] = getRoute(params)["features"][0]["properties"]["summary"]["distance"]
     return queryResult
 
 
 
 @app.route('/stations-score', methods=["POST"])
 def stations_score():
+    #array of array
     routepoint= request.json["routepoint"]
+    #array
     station_distance = request.json["station-distance"]
+    #integer
     amenity_distance = request.json["amenity-distance"]
 
     stations = queryStations(routepoint, station_distance)
 
     for s in stations:
-        closeRestaurants = queryRestaurants([s["lng"], s["lat"]], amenity_distance)
+        closeRestaurants = queryRestaurants([s["properties"]["lng"], s["properties"]["lat"]], amenity_distance)
 
         for r in closeRestaurants:
             params = {
                 "coordinates":[
-                    [s["lng"], s["lat"]],
-                    [r["lng"], r["lat"]]
+                    [s["properties"]["lng"], s["properties"]["lat"]],
+                    [r["properties"]["lng"], r["properties"]["lat"]]
                 ]
             }
-            r["distance"] = getRoute(params)["features"][0]["properties"]["summary"]["distance"]
-        s["closeRestaurants"] = closeRestaurants
+            r["properties"]["distance"] = getRoute(params)["features"][0]["properties"]["summary"]["distance"]
+        s["properties"]["closeRestaurants"] = closeRestaurants
 
-        s["score"] = calcScore(s)
+        s["properties"]["score"] = calcScore(s)
     return jsonify({
-        "type": "FeatureCollection", "stations": stations
+        "type": "FeatureCollection", "features": stations
     }), 200 
 
 
 def calcScore(station):
-    distance = station["distance"]
+    distance = station["properties"]["distance"]
     score = 100/(distance+100)
-    for r in station["closeRestaurants"]:
-        score+= 100/(r["distance"]+100)
-        if(r["amenity"]=="rated_restaurant"):
+    for r in station["properties"]["closeRestaurants"]:
+        score+= 100/(r["properties"]["distance"]+100)
+        if(r["properties"]["amenity"]=="rated_restaurant"):
             score += 2
     return score
     
@@ -309,7 +320,7 @@ def getRestaurants():
     station= request.json["station"]
     distance = request.json["distance"]
     return jsonify({
-        "type": "FeatureCollection", "stations": queryRestaurants(station, distance)
+        "type": "FeatureCollection", "features": queryRestaurants(station, distance)
     }), 200
 
 def queryRestaurants(station, distance):
@@ -360,18 +371,21 @@ def queryRestaurants(station, distance):
 #     return parseRestaurants(execQuery(query))
 
 def parseRestaurants(queryResults):
-    restaurants = []
+    restaurants_geojson = []
     for r in queryResults:
-        restaurants.append({
+        restaurants_geojson.append({
+            "type": "Feature",
             "id": r['osm_id'],
-            "amenity":r["amenity"],
-            "name": r["name"],
-            "rating": r["rating"],
-            "lat": r["lat"],
-            "lng": r["lng"],
-            "way": r["way"] #probably need cast to str
+            "properties":{
+                "amenity":r["amenity"],
+                "name": r["name"],
+                "rating": r["rating"],
+                "lat": r["lat"],
+                "lng": r["lng"]
+            },
+            "geometry": r["way"] #probably need cast to str
         })
-    return restaurants
+    return restaurants_geojson
 
 #####################################################################################
 ######################## API for Route Planning #####################################

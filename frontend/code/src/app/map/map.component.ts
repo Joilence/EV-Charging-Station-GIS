@@ -1,9 +1,10 @@
 /// <reference types='leaflet-sidebar-v2' />
-import {Component, EventEmitter, Input, Output} from '@angular/core';
+import {Component, EventEmitter, Output} from '@angular/core';
 import {Feature, FeatureCollection, Geometry} from 'geojson';
-import {GeoJSON, Icon, latLng, Layer, LayerGroup, Map, Marker, Polyline, tileLayer} from 'leaflet';
-import * as d3 from 'd3';
+import {GeoJSON, Icon, latLng, LayerGroup, Map, Marker, Polyline, TileLayer} from 'leaflet';
 import {extract} from './leaflet-geometryutil.js';
+import {RoutingService} from '../services/routing.service';
+import {Observable} from 'rxjs';
 
 @Component({
   selector: 'app-map',
@@ -11,12 +12,27 @@ import {extract} from './leaflet-geometryutil.js';
   styleUrls: ['./map.component.scss'],
 })
 export class MapComponent {
+
+  constructor(private routingService: RoutingService) {
+
+  }
+
+  /**
+   *  #######################################################################
+   *  ############################ Map & Layers #############################
+   *  #######################################################################
+   */
+
   @Output() map$: EventEmitter<Map> = new EventEmitter();
   public map!: Map;
+  private routeLayerGroup: LayerGroup = new LayerGroup();
+  private wayPointsLayerGroup: LayerGroup = new LayerGroup();
+  private stationsLayerGroup: LayerGroup = new LayerGroup();
+  private isochronesLayerGroup: LayerGroup = new LayerGroup();
 
   options = {
     layers: [
-      tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      new TileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
         attribution:
           '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
       })
@@ -25,17 +41,10 @@ export class MapComponent {
     center: latLng(48.13, 8.20)
   };
 
-  private amenitiesLayer: LayerGroup = new LayerGroup();
-
-  private _amenities: {
-    name: string;
-    latitude: number;
-    longitude: number;
-  }[] = [];
-
   public onMapReady(map: Map): void {
     this.map = map;
     this.map$.emit(map);
+    this.routingService.setMap(this.map);
     // some settings for a nice shadows, etc.
     const iconRetinaUrl = './assets/marker-icon-2x.png';
     const iconUrl = './assets/marker-icon.png';
@@ -54,96 +63,16 @@ export class MapComponent {
     Marker.prototype.options.icon = iconDefault;
   }
 
-  get amenities(): { name: string; latitude: number; longitude: number }[] {
-    return this._amenities;
-  }
-
-  @Input()
-  set amenities(
-    value: { name: string; latitude: number; longitude: number }[]
-  ) {
-    this._amenities = value;
-    this.updateAmenitiesLayer();
-  }
-
-  private updateAmenitiesLayer(): void {
-    if (!this.map) {
-      return;
-    }
-
-    // remove old amenities
-    this.map.removeLayer(this.amenitiesLayer);
-
-    // create a marker for each supplied amenity
-    const markers = this.amenities.map((a) =>
-      new Marker([a.latitude, a.longitude]).bindPopup(a.name)
-    );
-
-    // create a new layer group and add it to the map
-    this.amenitiesLayer = new LayerGroup(markers);
-    markers.forEach((m) => m.addTo(this.amenitiesLayer));
-    this.map.addLayer(this.amenitiesLayer);
-  }
-
   /**
-   * Add a GeoJSON FeatureCollection to this map.
+   *  #######################################################################
+   *  ############################### Routes ################################
+   *  #######################################################################
    */
-  public addGeoJSON(geojson: FeatureCollection): void {
-    // find maximum numbars value in array
-    let max = d3.max(
-      geojson.features.map((f: Feature<Geometry, any>) => +f.properties.numbars)
-    );
 
-    // if max is undefined, enforce max = 1
-    if (!max) {
-      max = 1;
-    }
-
-    const colorscale = d3
-      .scaleSequential()
-      .domain([0, max])
-      .interpolator(d3.interpolateViridis);
-
-    // each feature has a custom style
-    const style = (feature: Feature<Geometry, any> | undefined) => {
-      const numbars = feature?.properties?.numbars
-        ? feature.properties.numbars
-        : 0;
-
-      return {
-        fillColor: colorscale(numbars),
-        weight: 2,
-        opacity: 1,
-        color: 'white',
-        dashArray: '3',
-        fillOpacity: 0.7,
-      };
-    };
-
-    // each feature gets an additional popup!
-    const onEachFeature = (feature: Feature<Geometry, any>, layer: Layer) => {
-      if (
-        feature.properties &&
-        feature.properties.name &&
-        typeof feature.properties.numbars !== 'undefined'
-      ) {
-        layer.bindPopup(
-          `${feature.properties.name} has ${feature.properties.numbars} bar${feature.properties.numbars > 0 ? 's' : ''
-          }`
-        );
-      }
-    };
-
-    // create one geoJSON layer and add it to the map
-    const geoJSON = new GeoJSON(geojson, {
-      onEachFeature,
-      style,
-    });
-    geoJSON.addTo(this.map);
-  }
-
-  public handleRoute(fc: FeatureCollection, maxRange: number = 300000, dangerBattery: number = 0.2): FeatureCollection {
-    const wholeRoute = fc.features[0];
+  public handleRoute(featureCollection: FeatureCollection): FeatureCollection {
+    const maxRange = this.routingService.maxRange;
+    const dangerBattery = this.routingService.dangerBattery;
+    const wholeRoute = featureCollection.features[0] as Feature;
     // TODO: TS data safety check
     wholeRoute.properties.type = 'Whole Route';
     const wholeRouteLine = new Polyline(wholeRoute.geometry.coordinates);
@@ -154,7 +83,7 @@ export class MapComponent {
     let isDanger = false;
     const segments = wholeRoute.properties.segments;
     const lastSegmentDistance = segments[segments.length - 1].distance;
-    console.log('lastSegmentDistance: ', lastSegmentDistance);
+    // console.log('lastSegmentDistance: ', lastSegmentDistance);
     if (lastSegmentDistance > maxRange * (1 - dangerBattery)) {
       isDanger = true;
       const previousSegmentsDistance = wholeRouteDistance - lastSegmentDistance;
@@ -172,7 +101,7 @@ export class MapComponent {
       const dsGeoJSON = dsLine.toGeoJSON();
       dsGeoJSON.geometry.coordinates = dsCors;
       dsGeoJSON.properties.type = 'Danger Segment';
-      console.log('Danger Segment:', dsGeoJSON);
+      // console.log('Danger Segment:', dsGeoJSON);
       // TODO: ugly code fix
       const ssCors = Array.from(extract(this.map, wholeRouteLine, 0, dsStartPercent), e => {
         return [e.lat, e.lng];
@@ -182,8 +111,8 @@ export class MapComponent {
       ssGeoJSON.geometry.coordinates = ssCors;
       ssGeoJSON.properties.type = 'Safe Segment';
 
-      fc.features.push(dsGeoJSON);
-      fc.features.push(ssGeoJSON);
+      featureCollection.features.push(dsGeoJSON);
+      featureCollection.features.push(ssGeoJSON);
     }
 
     // safe segment (ss)
@@ -192,82 +121,165 @@ export class MapComponent {
       const ssGeoJSON = wholeRouteLine.toGeoJSON();
       ssGeoJSON.geometry.coordinates = wholeRoute.geometry.coordinates;
       ssGeoJSON.properties.type = 'Safe Segment';
-      fc.features.push(ssGeoJSON);
+      featureCollection.features.push(ssGeoJSON);
     }
 
     // fc.features = fc.features.slice(1, 3);
-    return fc;
+    return featureCollection;
   }
 
-  public addRoutePath(fc: FeatureCollection): void {
-    const processedFC = this.handleRoute(fc);
-    console.log('addRoutePath:', processedFC);
-    // const style = {
-    //   "color": "#ff7800",
-    //   "weight": 5,
-    //   "opacity": 0.65
-    // }
+  // TODO: cannot find Observable but circular import
+  public addRoutePath(routeObs: Observable<FeatureCollection>): void {
+    routeObs.subscribe((route: FeatureCollection) => {
+      const processedRoute = this.handleRoute(route);
+      console.log('addRoutePath: processed route', processedRoute);
 
-    const styles = (feature: { properties: { type: any; }; }) => {
-      console.log(feature);
-      switch (feature.properties.type) {
-        case 'Whole Route':
-          return {
-            color: '#000000',
-            weight: 8,
-            opacity: 0.2
-          };
+      const styles = (feature: any) => {
+        // console.log(feature);
+        switch (feature.properties.type) {
+          case 'Whole Route':
+            return {
+              color: '#000000',
+              weight: 8,
+              opacity: 0.2
+            };
 
-        case 'Danger Segment':
-          return {
-            color: '#ff7800',
-            weight: 5,
-            opacity: 0.65
-          };
+          case 'Danger Segment':
+            return {
+              color: '#ff7800',
+              weight: 5,
+              opacity: 0.65
+            };
 
-        case 'Safe Segment':
-          return {
-            color: '#03fc94',
-            weight: 5,
-            opacity: 0.65
-          };
+          case 'Safe Segment':
+            return {
+              color: '#03fc94',
+              weight: 5,
+              opacity: 0.65
+            };
 
-        default:
-          return {
-            color: '#ff7800',
-            weight: 5,
-            opacity: 0.65
-          };
-      }
-    };
-    const geoJSON = new GeoJSON(processedFC, {
-      // TODO TS error
-      style: styles,
+          default:
+            return {
+              color: '#ff7800',
+              weight: 5,
+              opacity: 0.65
+            };
+        }
+      };
+      const routeGeoJSON = new GeoJSON(processedRoute, {
+        style: styles,
+      });
+      this.removeAllStations();
+      this.removeAllIsochrones();
+      this.updateRouteLayer(routeGeoJSON);
     });
-    geoJSON.addTo(this.map);
-    // console.log('setView:', features.bbox);
-    const bbox = processedFC.bbox;
-    if (bbox) {
-      this.map.fitBounds([[bbox[1], bbox[0]], [bbox[3], bbox[2]]]);
-    }
-
-    // way points will be depature, destination and selected stations with related info, maybe added by other functions
   }
 
-  public addWayPoints(features: FeatureCollection): void {
+  public updateRouteLayer(routeGeoJSON: GeoJSON): void {
+    this.map.removeLayer(this.routeLayerGroup);
+    this.routeLayerGroup = new LayerGroup();
+    routeGeoJSON.addTo(this.routeLayerGroup);
+    this.routeLayerGroup.addTo(this.map);
+    this.map.fitBounds(routeGeoJSON.getBounds());
+    this.addWayPoints(this.routingService.getCurrentWayPoints());
+  }
+
+  /**
+   *  #######################################################################
+   *  ############################# Isochrones ##############################
+   *  #######################################################################
+   */
+
+  public addIsochrones(isochrones: FeatureCollection): void {
+    // console.log('addIsochrones:', isochrones);
+    const isochronesJSON = new GeoJSON(isochrones);
+    this.updateIsochronesLayer(isochronesJSON);
+  }
+
+  public updateIsochronesLayer(isochronesJSON: GeoJSON | undefined): void {
+    if (isochronesJSON) {
+      console.log('update isochrones');
+      this.map.removeLayer(this.isochronesLayerGroup);
+      this.isochronesLayerGroup = new LayerGroup();
+      isochronesJSON.addTo(this.isochronesLayerGroup);
+      this.isochronesLayerGroup.addTo(this.map);
+    } else {
+      console.log('remove isochrones');
+      this.map.removeLayer(this.isochronesLayerGroup);
+      this.isochronesLayerGroup = new LayerGroup();
+    }
+  }
+
+  public removeAllIsochrones(): void {
+    this.updateIsochronesLayer(undefined);
+  }
+
+  /**
+   *  #######################################################################
+   *  ############################## Stations ###############################
+   *  #######################################################################
+   */
+
+  public addStations(stations: FeatureCollection): void {
+    console.log('addStations:', stations);
+    const onEachFeature = (feature: Feature<Geometry, any>, layer: L.Layer) => {
+      layer.bindPopup(`${feature.properties.type}: ${feature.properties.address}`);
+    };
+
+    const stationsGeoJSON = new GeoJSON(stations, {
+      onEachFeature,
+    });
+    this.updateStationsLayer(stationsGeoJSON);
+  }
+
+  public updateStationsLayer(stationsGeoJSON: GeoJSON | undefined): void {
+    if (stationsGeoJSON) {
+      console.log('add stations');
+      this.map.removeLayer(this.stationsLayerGroup);
+      this.stationsLayerGroup = new LayerGroup();
+      stationsGeoJSON.addTo(this.stationsLayerGroup);
+      this.stationsLayerGroup.addTo(this.map);
+    } else {
+      console.log('remove all stations');
+      this.map.removeLayer(this.stationsLayerGroup);
+      this.stationsLayerGroup = new LayerGroup();
+    }
+  }
+
+  public removeAllStations(): void {
+    this.updateStationsLayer(undefined);
+  }
+
+  /**
+   *  #######################################################################
+   *  ############################# Way Points ##############################
+   *  #######################################################################
+   */
+
+  public addWayPoints(wayPoints: FeatureCollection): void {
+    // console.log('add way points:', wayPoints);
     const onEachFeature = (feature: Feature<Geometry, any>, layer: L.Layer) => {
       layer.bindPopup(`${feature.properties.type}: ${feature.properties.name}`);
     };
-
-    const geoJSON = new GeoJSON(features, {
+    const wayPointsGeoJSON = new GeoJSON(wayPoints, {
       onEachFeature,
     });
-    geoJSON.addTo(this.map);
+    this.updateWayPointsLayer(wayPointsGeoJSON);
   }
 
-  public addIsochrones(features: FeatureCollection): void {
-    console.log('addIsochrones:', features);
-    const geoJSON = new GeoJSON(features);
-    geoJSON.addTo(this.map);
+  public updateWayPointsLayer(wayPointsGeoJSON: GeoJSON | undefined): void {
+    if (wayPointsGeoJSON) {
+      this.map.removeLayer(this.wayPointsLayerGroup);
+      this.wayPointsLayerGroup = new LayerGroup();
+      wayPointsGeoJSON.addTo(this.wayPointsLayerGroup);
+      this.wayPointsLayerGroup.addTo(this.map);
+    } else {
+      this.map.removeLayer(this.wayPointsLayerGroup);
+      this.wayPointsLayerGroup = new LayerGroup();
+    }
+  }
+
+  public removeAllWayPoints(): void {
+    this.updateWayPointsLayer(undefined);
   }
 }

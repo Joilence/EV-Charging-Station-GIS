@@ -1,9 +1,10 @@
 /// <reference types='leaflet-sidebar-v2' />
-import {AfterContentInit, Component, ElementRef, ViewChild} from '@angular/core';
-import {Map, SidebarOptions} from 'leaflet';
-import {FeatureCollection} from 'geojson';
+import {Component, ElementRef, ViewChild} from '@angular/core';
+import {Feature, FeatureCollection} from 'geojson';
 import {MapComponent} from './map/map.component';
 import {DataService} from './services/data.service';
+import {RoutingService} from './services/routing.service';
+import {Map, SidebarOptions} from 'leaflet';
 import {SpinnerOverlayService} from './services/spinner-overlay.service';
 
 @Component({
@@ -11,7 +12,7 @@ import {SpinnerOverlayService} from './services/spinner-overlay.service';
   templateUrl: './app.component.html',
   styleUrls: ['./app.component.scss'],
 })
-export class AppComponent implements AfterContentInit {
+export class AppComponent {
 
   public map!: Map;
 
@@ -22,7 +23,7 @@ export class AppComponent implements AfterContentInit {
     container: 'sidebar',
   };
 
-  @ViewChild(MapComponent) mapcomponent!: MapComponent;
+  @ViewChild(MapComponent) mapComponent!: MapComponent;
 
   @ViewChild('inputStart', {static: true})
   inputStart!: ElementRef;
@@ -35,80 +36,90 @@ export class AppComponent implements AfterContentInit {
    * Services or other dependencies are often imported via dependency injection.
    * See https://angular.io/guide/dependency-injection for more details.
    */
-  constructor(private dataservice: DataService, private spinnerService: SpinnerOverlayService) {
+  constructor(private dataService: DataService, private routingService: RoutingService, private spinnerService: SpinnerOverlayService) {
   }
 
   receiveMap(map: Map): void {
     // This will throw an ExpressionChangedAfterItHasBeenCheckedError error in dev mode. That's okay and not problematic.
     this.map = map;
+    setTimeout(() => {
+      this.initTestProcess();
+    }, 2000);
   }
 
-  ngAfterContentInit(): void {
+  initTestProcess(): void {
     // this.dataservice.getBarDistribution().subscribe((geojson: FeatureCollection) => {
     //  this.mapcomponent.addGeoJSON(geojson);
     // });
 
     /**
-     * Test Routing Process
+     *  #######################################################################
+     *  ############################ Test Process #############################
+     *  #######################################################################
+     *
      * Konstanz [47.6779, 9.1732], Stuttgart [48.7758, 9.1829], Dresden [51.0504, 13.7373]
      */
-    let testCor: number[][];
 
-    // User Action 1: input from Konstanz to Dresden
-    testCor = [
-      [9.1732, 47.6779], // Konstanz
-      // [9.1829, 48.7758], // After 107km, Stuttgart
-      [13.7373, 51.0504], // After 507km, Dresden
-    ];
+      // User Action 1: input from Konstanz to Dresden
+    const initLocations: FeatureCollection = {
+        type: 'FeatureCollection',
+        features: [{
+          type: 'Feature',
+          properties: {
+            name: 'Konstanz',
+            type: 'Departure'
+          },
+          geometry: {
+            type: 'Point',
+            coordinates: [9.1732, 47.6779], // Konstanz
+          }
+        }, {
+          type: 'Feature',
+          properties: {
+            name: 'Dresden',
+            type: 'Destination'
+          },
+          geometry: {
+            type: 'Point',
+            coordinates: [13.7373, 51.0504], // Dresden
+          }
+        }, ]
+      };
 
-    // TODO: function to construct way_points
-    const testWayPoints = [{
-      type: 'Feature',
-      properties: {
-        name: 'departure place',
-        type: 'Departure'
-      },
-      geometry: {
-        type: 'Point',
-        coordinates: testCor[0]
-      }
-    }, {
-      type: 'Feature',
-      properties: {
-        name: 'destination place',
-        type: 'Destination'
-      },
-      geometry: {
-        type: 'Point',
-        coordinates: testCor[1]
-      }
-    },];
+    this.routingService.initDepDest(initLocations);
 
-    // Get route path and display in the map
-    this.dataservice.getRoute('driving-car', testCor).subscribe((featureCollection: FeatureCollection) => {
-      this.mapcomponent.addRoutePath(featureCollection);
-      // this.mapcomponent.addWayPoints(testWayPoints);
-    });
+    this.mapComponent.addRoutePath(this.routingService.getCurrentRoute());
 
     // User Action 2: Select points along the path and show isochrones with stations
+    setTimeout(() => {
+      const selectedPoint = {
+        location: [[9.1829, 48.7758]], // Stuttgart
+        range: [10000]
+      };
+      this.dataService.getIsochrones(selectedPoint.location, 'distance', selectedPoint.range).subscribe((isochrones: FeatureCollection) => {
+        this.mapComponent.addIsochrones(isochrones);
+      });
 
-    const testForIC = {
-      locations: [[8.681495, 49.41461],
-        [8.687872, 49.420318]],
-      range: [300]
-    };
-
-    this.dataservice.getIsochrones(testForIC.locations, 'distance', testForIC.range).subscribe((features: FeatureCollection) => {
-      this.mapcomponent.addIsochrones(features);
-    });
+      this.dataService.getStations(selectedPoint.location, selectedPoint.range).subscribe((stations: FeatureCollection) => {
+        this.mapComponent.addStations(stations);
+      });
+    }, 3000);
 
     // User Action 3: Select stations and re-route
-    testCor = [
-      [9.1732, 47.6779], // Konstanz
-      [9.1829, 48.7758], // After 107km, Stuttgart
-      [13.7373, 51.0504], // After 507km, Dresden
-    ];
-
+    setTimeout(() => {
+      const selectedStation: Feature = {
+        type: 'Feature',
+        geometry: {
+          type: 'Point',
+          coordinates: [9.178289, 48.774372],
+        },
+        properties: {
+          address: 'Eichstraße 7',
+        }
+      };
+      this.routingService.addNewStation(selectedStation);
+      this.mapComponent.addRoutePath(this.routingService.getCurrentRoute());
+    }, 5000);
   }
 
   public calculateRoute(): void {
