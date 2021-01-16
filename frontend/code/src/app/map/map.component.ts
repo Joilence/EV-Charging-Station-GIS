@@ -1,16 +1,17 @@
 /// <reference types='leaflet-sidebar-v2' />
-import { Component, Input, OnInit } from '@angular/core';
+import { Component, EventEmitter, Input, Output } from '@angular/core';
 import { Feature, FeatureCollection, GeoJsonGeometryTypes, Geometry } from 'geojson';
-import { GeoJSON, Icon, Layer, LayerGroup, Map, Marker, Polyline, SidebarOptions, TileLayer, LatLng, PathOptions, StyleFunction } from 'leaflet';
+import { GeoJSON, Icon, Layer, LayerGroup, Map, Marker, Polyline, SidebarOptions, TileLayer, LatLng, PathOptions, StyleFunction, tileLayer, latLng } from 'leaflet';
 import { extract } from './leaflet-geometryutil.js';
 import { RoutingService } from '../services/routing.service'
+import * as d3 from 'd3';
 
 @Component({
   selector: 'app-map',
   templateUrl: './map.component.html',
   styleUrls: ['./map.component.scss'],
 })
-export class MapComponent implements OnInit {
+export class MapComponent {
 
   constructor(private routingservice: RoutingService) {
 
@@ -22,6 +23,7 @@ export class MapComponent implements OnInit {
    *  #######################################################################
    */
 
+  @Output() map$: EventEmitter<Map> = new EventEmitter();
   public map!: Map;
   private tileMapLayer: TileLayer = new TileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
     attribution:
@@ -38,17 +40,20 @@ export class MapComponent implements OnInit {
    *  #######################################################################
    */
 
-  public sidebarOptions: SidebarOptions = {
-    position: 'left',
-    autopan: true,
-    closeButton: true,
-    container: 'sidebar',
+  options = {
+    layers: [
+      new TileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution:
+          '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+      })
+    ],
+    zoom: 10,
+    center: latLng(48.13, 8.20)
   };
 
-  /**
-   * Often divs and other HTML element are not available in the constructor. Thus we use onInit()
-   */
-  ngOnInit(): void {
+  public onMapReady(map: Map): void {
+    this.map = map;
+    this.map$.emit(map);
     // some settings for a nice shadows, etc.
     const iconRetinaUrl = './assets/marker-icon-2x.png';
     const iconUrl = './assets/marker-icon.png';
@@ -65,12 +70,6 @@ export class MapComponent implements OnInit {
     });
 
     Marker.prototype.options.icon = iconDefault;
-
-    // basic setup, create a map in the div with the id "map"
-    this.map = new Map('map').setView([48.12, 8.2], 10);
-
-    // set a tilelayer, e.g. a world map in the background
-    this.tileMapLayer.addTo(this.map);
   }
 
   /**

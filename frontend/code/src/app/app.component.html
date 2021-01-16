@@ -1,3 +1,58 @@
 <div id="app">
-  <app-map> </app-map>
+  <app-map (map$)="receiveMap($event)"></app-map>
+  <leaflet-sidebar-control [map]="map" [options]="sidebarOptions"></leaflet-sidebar-control>
+  <div id="sidebar" class="leaflet-sidebar collapsed">
+    <!-- Nav tabs -->
+    <div class="leaflet-sidebar-tabs">
+      <!-- top aligned tabs -->
+      <ul role="tablist">
+        <li><a href="#home" role="tab"><i class="fa fa-bars active"></i></a></li>
+        <li><a href="#settings" role="tab"><i class="fa fa-cogs active"></i></a></li>
+      </ul>
+      <!-- bottom aligned tabs -->
+      <ul role="tablist">
+        <li><a target="_blank" href="https://github.com/Joilence/EV-Charging-Station-GIS"><i
+          class="fa fa-info-circle"></i></a></li>
+      </ul>
+
+    </div>
+
+    <!-- Tab panes -->
+    <div class="leaflet-sidebar-content">
+      <div class="leaflet-sidebar-pane" id="home">
+        <h1 class="leaflet-sidebar-header">
+          <span class="leaflet-sidebar-close"><i class="fa fa-caret-left"></i></span>
+        </h1>
+
+        <div class="leaflet-sidebar-custom-content">
+
+          <h3 class="text-center w-100">Route planning (coordinates)</h3>
+          <mat-form-field class="w-100">
+            <mat-label>Start</mat-label>
+            <input #inputStart matInput>
+          </mat-form-field>
+          <mat-form-field class="w-100">
+            <mat-label>Target</mat-label>
+            <input #inputTarget matInput>
+          </mat-form-field>
+          <mat-form-field class="w-100">
+            <mat-label>Car Range</mat-label>
+            <input type="number" value="200" #inputRange matInput>
+          </mat-form-field>
+          <button class="text-center w-100 mt-3" mat-raised-button color="primary" (click)="calculateRoute()">
+            Calculate
+          </button>
+        </div>
+      </div>
+      <div class="leaflet-sidebar-pane" id="settings">
+        <h1 class="leaflet-sidebar-header">
+          <span class="leaflet-sidebar-close"><i class="fa fa-caret-left"></i></span>
+        </h1>
+        <div class="leaflet-sidebar-custom-content">
+          <h3 class="text-center w-100">Settings</h3>
+          <!-- TODO -->
+        </div>
+      </div>
+    </div>
+  </div>
 </div>

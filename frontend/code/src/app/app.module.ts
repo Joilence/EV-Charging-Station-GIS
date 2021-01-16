@@ -15,9 +15,12 @@ import { AppComponent } from './app.component';
 import { MapComponent } from './map/map.component';
 import {NgxSidebarControlModule} from '@runette/ngx-leaflet-sidebar';
 import {LeafletModule} from '@asymmetrik/ngx-leaflet';
+import {SpinnerComponent} from './spinner/spinner.component';
+import {SpinnerOverlayComponent} from './spinner/overlay/spinner-overlay.component';
+import {Overlay, OverlayModule} from '@angular/cdk/overlay';
 
 @NgModule({
-  declarations: [AppComponent, MapComponent],
+  declarations: [AppComponent, MapComponent, SpinnerComponent, SpinnerOverlayComponent],
   imports: [
     BrowserModule,
     BrowserAnimationsModule,
@@ -28,9 +31,10 @@ import {LeafletModule} from '@asymmetrik/ngx-leaflet';
     MatButtonModule,
     HttpClientModule,
     LeafletModule,
-    NgxSidebarControlModule
+    NgxSidebarControlModule,
+    OverlayModule
   ],
-  providers: [],
+  providers: [Overlay],
   bootstrap: [AppComponent],
 })
 export class AppModule {}

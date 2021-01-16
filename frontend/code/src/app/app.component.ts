@@ -1,25 +1,49 @@
-import { AfterViewInit, Component, ViewChild } from '@angular/core';
+/// <reference types='leaflet-sidebar-v2' />
+import { AfterContentInit, Component, ElementRef, ViewChild } from '@angular/core';
 import { Feature, FeatureCollection } from 'geojson';
 import { MapComponent } from './map/map.component';
 import { DataService } from './services/data.service';
 import { RoutingService } from './services/routing.service'
+import { Map, SidebarOptions } from 'leaflet';
+import { SpinnerOverlayService } from './services/spinner-overlay.service';
 
 @Component({
   selector: 'app-root',
   templateUrl: './app.component.html',
   styleUrls: ['./app.component.scss'],
 })
-export class AppComponent implements AfterViewInit {
+export class AppComponent implements AfterContentInit {
+
+  public map!: Map;
+
+  public sidebarOptions: SidebarOptions = {
+    position: 'left',
+    autopan: true,
+    closeButton: true,
+    container: 'sidebar',
+  };
 
   @ViewChild(MapComponent) mapcomponent!: MapComponent;
+
+  @ViewChild('inputStart', { static: true })
+  inputStart!: ElementRef;
+  @ViewChild('inputTarget', { static: true })
+  inputTarget!: ElementRef;
+  @ViewChild('inputRange', { static: true })
+  inputRange!: ElementRef;
 
   /*
    * Services or other dependencies are often imported via dependency injection.
    * See https://angular.io/guide/dependency-injection for more details.
    */
-  constructor(private dataservice: DataService, private routingservice: RoutingService) { }
+  constructor(private dataservice: DataService, private routingservice: RoutingService, private spinnerService: SpinnerOverlayService) { }
 
-  ngAfterViewInit(): void {
+  receiveMap(map: Map): void {
+    // This will throw an ExpressionChangedAfterItHasBeenCheckedError error in dev mode. That's okay and not problematic.
+    this.map = map;
+  }
+
+  ngAfterContentInit(): void {
     // this.dataservice.getBarDistribution().subscribe((geojson: FeatureCollection) => {
     //  this.mapcomponent.addGeoJSON(geojson);
     // });
@@ -92,5 +116,15 @@ export class AppComponent implements AfterViewInit {
       this.routingservice.addNewStation(selectedStation);
       this.mapcomponent.addRoutePath(this.routingservice.getCurrentRoute());
     }, 5000);
+  }
+
+  public calculateRoute(): void {
+    console.log(this.inputStart.nativeElement.value);
+    console.log(this.inputTarget.nativeElement.value);
+    console.log(this.inputRange.nativeElement.value);
+    this.spinnerService.show();
+    setTimeout(() => {
+      this.spinnerService.hide();
+    }, 2000);
   }
 }
