@@ -45,6 +45,9 @@ export class MapComponent {
     this.map = map;
     this.map$.emit(map);
     this.routingService.setMap(this.map);
+    this.routingService.maxRange = 300000;
+    this.routingService.dangerBattery = 0.2;
+    console.log('map.com: set param to rs.');
     // some settings for a nice shadows, etc.
     const iconRetinaUrl = './assets/marker-icon-2x.png';
     const iconUrl = './assets/marker-icon.png';
@@ -91,69 +94,10 @@ export class MapComponent {
    *  #######################################################################
    */
 
-  public handleRoute(featureCollection: FeatureCollection): FeatureCollection {
-    const maxRange = this.routingService.maxRange;
-    const dangerBattery = this.routingService.dangerBattery;
-    const wholeRoute = featureCollection.features[0] as Feature;
-    // TODO: TS data safety check
-    wholeRoute.properties.type = 'Whole Route';
-    const wholeRouteLine = new Polyline(wholeRoute.geometry.coordinates);
-    const wholeRouteDistance = wholeRoute.properties.summary.distance;
-
-    // danger segment (ds)
-    // TODO: check every segment instead of only last one
-    let isDanger = false;
-    const segments = wholeRoute.properties.segments;
-    const lastSegmentDistance = segments[segments.length - 1].distance;
-    // console.log('lastSegmentDistance: ', lastSegmentDistance);
-    if (lastSegmentDistance > maxRange * (1 - dangerBattery)) {
-      isDanger = true;
-      const previousSegmentsDistance = wholeRouteDistance - lastSegmentDistance;
-      const dsStartDistance = previousSegmentsDistance + maxRange * (1 - dangerBattery);
-      const dsEndDistance = previousSegmentsDistance + Math.min(maxRange, lastSegmentDistance);
-      const dsStartPercent = dsStartDistance / wholeRouteDistance;
-      const dsEndPercent = dsEndDistance / wholeRouteDistance;
-      // console.log('previous seg dis:', previousSegmentsDistance);
-      // TODO: ugly code: reverse [lat, lng] for unknown problem; 3 places;
-      const dsCors = Array.from(extract(this.map, wholeRouteLine, dsStartPercent, dsEndPercent), e => {
-        return [e.lat, e.lng];
-      });
-      // console.log(dsCors);
-      const dsLine = new Polyline(dsCors);
-      const dsGeoJSON = dsLine.toGeoJSON();
-      dsGeoJSON.geometry.coordinates = dsCors;
-      dsGeoJSON.properties.type = 'Danger Segment';
-      // console.log('Danger Segment:', dsGeoJSON);
-      // TODO: ugly code fix
-      const ssCors = Array.from(extract(this.map, wholeRouteLine, 0, dsStartPercent), e => {
-        return [e.lat, e.lng];
-      });
-      const ssLine = new Polyline(ssCors);
-      const ssGeoJSON = ssLine.toGeoJSON();
-      ssGeoJSON.geometry.coordinates = ssCors;
-      ssGeoJSON.properties.type = 'Safe Segment';
-
-      featureCollection.features.push(dsGeoJSON);
-      featureCollection.features.push(ssGeoJSON);
-    }
-
-    // safe segment (ss)
-    if (!isDanger) {
-      // TODO: ugly code fix
-      const ssGeoJSON = wholeRouteLine.toGeoJSON();
-      ssGeoJSON.geometry.coordinates = wholeRoute.geometry.coordinates;
-      ssGeoJSON.properties.type = 'Safe Segment';
-      featureCollection.features.push(ssGeoJSON);
-    }
-
-    // fc.features = fc.features.slice(1, 3);
-    return featureCollection;
-  }
-
-  // TODO: cannot find Observable but circular import
   public addRoutePath(routeObs: Observable<FeatureCollection>): void {
     routeObs.subscribe((route: FeatureCollection) => {
-      const processedRoute = this.handleRoute(route);
+      // const processedRoute = this.handleRoute(route);
+      const processedRoute = route;
       console.log('addRoutePath: processed route', processedRoute);
 
       const styles = (feature: any) => {
