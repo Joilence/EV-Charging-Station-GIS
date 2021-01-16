@@ -1,10 +1,7 @@
-import { Injectable } from '@angular/core';
-import { FeatureCollection, Feature } from 'geojson';
-import { DataService } from './data.service';
-import { GeoJSON, Icon, Layer, LayerGroup, Map, Marker, Polyline, SidebarOptions, TileLayer, LatLng } from 'leaflet';
-import { extract } from './leaflet-geometryutil.js';
-import { Observable } from 'rxjs';
-import { map } from 'rxjs/operators';
+import {Injectable} from '@angular/core';
+import {Feature, FeatureCollection} from 'geojson';
+import {DataService} from './data.service';
+import {Observable} from 'rxjs';
 
 @Injectable({
   providedIn: 'root',
@@ -16,8 +13,8 @@ export class RoutingService {
 
   // TODO: TS best practice of getter and setter
   // departure, selected stations, destinations
-  public wayPoints: FeatureCollection = { 'type': 'FeatureCollection', 'features': [] }
-  public numOfSelectedStations: number = 0;
+  public wayPoints: FeatureCollection = {type: 'FeatureCollection', features: []};
+  public numOfSelectedStations = 0;
   public maxRange = 300000;
   public dangerBattery = 0.2;
 
@@ -30,22 +27,25 @@ export class RoutingService {
 
   public initDepDest(locations: FeatureCollection): void {
     locations.features.forEach((feature: Feature) => {
-      if (feature.properties && feature.properties.type === 'Departure')
+      if (feature.properties && feature.properties.type === 'Departure') {
         feature.properties.order = 0;
-      if (feature.properties && feature.properties.type === 'Destination')
+      }
+      if (feature.properties && feature.properties.type === 'Destination') {
         feature.properties.order = 99;
-    })
+      }
+    });
     // console.log('processed locations:', locations);
     this.wayPoints = locations;
   }
 
   public getCurrentRoute(): Observable<FeatureCollection> {
     const features = this.wayPoints.features.sort((a, b) => {
-      if (a.properties && b.properties)
-        return a.properties.order - b.properties.order
-    })
+      if (a.properties && b.properties) {
+        return a.properties.order - b.properties.order;
+      }
+    });
     // console.log('getCurrentRoute(): features:', features);
-    const locations = Array.from(features, e => e.geometry.coordinates)
+    const locations = Array.from(features, e => e.geometry.coordinates);
     // console.log('extract locations for getCurrentRoute():', locations);
     const routeObs = this.dataservice.getRoute('driving-car', locations);
     // console.log('route:', route);

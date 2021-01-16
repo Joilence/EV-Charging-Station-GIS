@@ -1,10 +1,10 @@
 /// <reference types='leaflet-sidebar-v2' />
-import { Component, EventEmitter, Input, Output } from '@angular/core';
-import { Feature, FeatureCollection, GeoJsonGeometryTypes, Geometry } from 'geojson';
-import { GeoJSON, Icon, Layer, LayerGroup, Map, Marker, Polyline, SidebarOptions, TileLayer, LatLng, PathOptions, StyleFunction, tileLayer, latLng } from 'leaflet';
-import { extract } from './leaflet-geometryutil.js';
-import { RoutingService } from '../services/routing.service'
-import * as d3 from 'd3';
+import {Component, EventEmitter, Output} from '@angular/core';
+import {Feature, FeatureCollection, Geometry} from 'geojson';
+import {GeoJSON, Icon, latLng, LayerGroup, Map, Marker, Polyline, TileLayer} from 'leaflet';
+import {extract} from './leaflet-geometryutil.js';
+import {RoutingService} from '../services/routing.service';
+import {Observable} from 'rxjs';
 
 @Component({
   selector: 'app-map',
@@ -25,20 +25,10 @@ export class MapComponent {
 
   @Output() map$: EventEmitter<Map> = new EventEmitter();
   public map!: Map;
-  private tileMapLayer: TileLayer = new TileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-    attribution:
-      '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
-  });
   private routeLayerGroup: LayerGroup = new LayerGroup();
   private wayPointsLayerGroup: LayerGroup = new LayerGroup();
   private stationsLayerGroup: LayerGroup = new LayerGroup();
   private isochronesLayerGroup: LayerGroup = new LayerGroup();
-
-  /**
-   *  #######################################################################
-   *  ############################## Side Bar ###############################
-   *  #######################################################################
-   */
 
   options = {
     layers: [
@@ -143,40 +133,40 @@ export class MapComponent {
       const processedRoute = this.handleRoute(route);
       console.log('addRoutePath: processed route', processedRoute);
 
-      const styles = function (feature) {
+      const styles = (feature: any) => {
         // console.log(feature);
         switch (feature.properties.type) {
           case 'Whole Route':
             return {
-              'color': '#000000',
-              'weight': 8,
-              'opacity': 0.2
+              color: '#000000',
+              weight: 8,
+              opacity: 0.2
             };
 
           case 'Danger Segment':
             return {
-              'color': '#ff7800',
-              'weight': 5,
-              'opacity': 0.65
+              color: '#ff7800',
+              weight: 5,
+              opacity: 0.65
             };
 
           case 'Safe Segment':
             return {
-              'color': '#03fc94',
-              'weight': 5,
-              'opacity': 0.65
+              color: '#03fc94',
+              weight: 5,
+              opacity: 0.65
             };
 
           default:
             return {
-              'color': '#ff7800',
-              'weight': 5,
-              'opacity': 0.65
+              color: '#ff7800',
+              weight: 5,
+              opacity: 0.65
             };
         }
       };
       const routeGeoJSON = new GeoJSON(processedRoute, {
-        'style': styles,
+        style: styles,
       });
       this.removeAllStations();
       this.removeAllIsochrones();
@@ -184,7 +174,7 @@ export class MapComponent {
     });
   }
 
-  public updateRouteLayer(routeGeoJSON: GeoJSON) {
+  public updateRouteLayer(routeGeoJSON: GeoJSON): void {
     this.map.removeLayer(this.routeLayerGroup);
     this.routeLayerGroup = new LayerGroup();
     routeGeoJSON.addTo(this.routeLayerGroup);
@@ -219,7 +209,7 @@ export class MapComponent {
     }
   }
 
-  public removeAllIsochrones() {
+  public removeAllIsochrones(): void {
     this.updateIsochronesLayer(undefined);
   }
 
@@ -241,7 +231,7 @@ export class MapComponent {
     this.updateStationsLayer(stationsGeoJSON);
   }
 
-  public updateStationsLayer(stationsGeoJSON: GeoJSON | undefined) {
+  public updateStationsLayer(stationsGeoJSON: GeoJSON | undefined): void {
     if (stationsGeoJSON) {
       console.log('add stations');
       this.map.removeLayer(this.stationsLayerGroup);
@@ -255,7 +245,7 @@ export class MapComponent {
     }
   }
 
-  public removeAllStations() {
+  public removeAllStations(): void {
     this.updateStationsLayer(undefined);
   }
 
@@ -288,7 +278,7 @@ export class MapComponent {
     }
   }
 
-  public removeAllWayPoints() {
+  public removeAllWayPoints(): void {
     this.updateWayPointsLayer(undefined);
   }
 }
