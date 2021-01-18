@@ -141,7 +141,7 @@ export class MapComponent {
     this.routeLayerGroup = new LayerGroup();
     routeGeoJSON.addTo(this.routeLayerGroup);
     this.routeLayerGroup.addTo(this.map);
-    this.map.fitBounds(routeGeoJSON.getBounds());
+    this.map.fitBounds(routeGeoJSON.getBounds(), {padding: [50, 50]});
     this.addWayPoints(this.routingService.getCurrentWayPoints());
   }
 
@@ -164,6 +164,7 @@ export class MapComponent {
       this.isochronesLayerGroup = new LayerGroup();
       isochronesJSON.addTo(this.isochronesLayerGroup);
       this.isochronesLayerGroup.addTo(this.map);
+      this.map.fitBounds(isochronesJSON.getBounds(), {padding: [100, 100]});
     } else {
       console.log('remove isochrones');
       this.map.removeLayer(this.isochronesLayerGroup);
