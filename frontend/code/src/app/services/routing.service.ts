@@ -2,8 +2,9 @@ import {Injectable} from '@angular/core';
 import {Feature, FeatureCollection, LineString, Point} from 'geojson';
 import {DataService} from './data.service';
 import {Observable} from 'rxjs';
-import {map} from 'rxjs/operators'
+import {map} from 'rxjs/operators';
 import {LatLng, LatLngExpression, Map, Polyline} from 'leaflet';
+// @ts-ignore
 import {extract} from './leaflet-geometryutil.js';
 
 @Injectable({
@@ -43,7 +44,7 @@ export class RoutingService {
     this.wayPoints = locations;
     this.numOfSelectedStations = 0;
   }
-  
+
   public handleRoute(featureCollection: FeatureCollection): FeatureCollection {
     const maxRange = this.maxRange;
     const dangerBattery = this.dangerBattery;
@@ -129,6 +130,7 @@ export class RoutingService {
     return this.wayPoints;
   }
 
+  // tslint:disable-next-line:no-shadowed-variable
   public setMap(map: Map): void {
     this.map = map;
   }

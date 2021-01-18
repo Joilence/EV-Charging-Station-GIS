@@ -47,10 +47,6 @@ export class AppComponent {
   }
 
   initTestProcess(): void {
-    // this.dataservice.getBarDistribution().subscribe((geojson: FeatureCollection) => {
-    //  this.mapcomponent.addGeoJSON(geojson);
-    // });
-
     /**
      *  #######################################################################
      *  ############################ Test Process #############################
@@ -84,7 +80,7 @@ export class AppComponent {
           }
         }, ]
       };
-    
+
     this.mapComponent.initDepDest(initLocations);
     this.mapComponent.route();
 

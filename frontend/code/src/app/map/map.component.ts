@@ -1,8 +1,7 @@
 /// <reference types='leaflet-sidebar-v2' />
 import {Component, EventEmitter, Output} from '@angular/core';
 import {Feature, FeatureCollection, Geometry} from 'geojson';
-import {GeoJSON, Icon, latLng, LayerGroup, Map, Marker, Polyline, TileLayer} from 'leaflet';
-import {extract} from './leaflet-geometryutil.js';
+import {GeoJSON, Icon, latLng, LayerGroup, Map, Marker, TileLayer} from 'leaflet';
 import {RoutingService} from '../services/routing.service';
 import {Observable} from 'rxjs';
 
@@ -52,7 +51,7 @@ export class MapComponent {
     const iconRetinaUrl = './assets/marker-icon-2x.png';
     const iconUrl = './assets/marker-icon.png';
     const shadowUrl = './assets/marker-shadow.png';
-    const iconDefault = new Icon({
+    Marker.prototype.options.icon = new Icon({
       iconRetinaUrl,
       iconUrl,
       shadowUrl,
@@ -62,8 +61,6 @@ export class MapComponent {
       tooltipAnchor: [16, -28],
       shadowSize: [41, 41],
     });
-
-    Marker.prototype.options.icon = iconDefault;
   }
 
   /**
@@ -73,7 +70,7 @@ export class MapComponent {
    */
 
   public initDepDest(initLocations: FeatureCollection): void {
-    this.routingService.initDepDest(initLocations)
+    this.routingService.initDepDest(initLocations);
   }
 
   public route(): void {
