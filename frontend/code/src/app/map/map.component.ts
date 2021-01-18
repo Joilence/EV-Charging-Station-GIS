@@ -1,8 +1,9 @@
 /// <reference types='leaflet-sidebar-v2' />
 import {Component, EventEmitter, Output} from '@angular/core';
 import {Feature, FeatureCollection, Geometry} from 'geojson';
-import {GeoJSON, Icon, latLng, LayerGroup, Map, Marker, TileLayer} from 'leaflet';
+import {GeoJSON, Icon, LatLng, latLng, LatLngExpression, LatLngTuple, LayerGroup, Map, Marker, TileLayer} from 'leaflet';
 import {RoutingService} from '../services/routing.service';
+import {DataService} from '../services/data.service';
 import {Observable} from 'rxjs';
 
 @Component({
@@ -12,7 +13,7 @@ import {Observable} from 'rxjs';
 })
 export class MapComponent {
 
-  constructor(private routingService: RoutingService) {
+  constructor(private routingService: RoutingService, private dataService: DataService) {
 
   }
 
@@ -83,6 +84,15 @@ export class MapComponent {
 
   public addNewStation(station: Feature): void {
     this.routingService.addNewStation(station);
+  }
+
+  public selectDropPoint(location: LatLngTuple, range: number): void {
+    this.dataService.getIsochrones([location], 'distance', [range]).subscribe((isochrones: FeatureCollection) => {
+      this.addIsochrones(isochrones);
+    });
+    this.dataService.getStations([location], [range]).subscribe((stations: FeatureCollection) => {
+      this.addStations(stations);
+    });
   }
 
   /**
