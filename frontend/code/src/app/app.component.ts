@@ -24,12 +24,20 @@ export class AppComponent {
 
   @ViewChild(MapComponent) mapComponent!: MapComponent;
 
-  @ViewChild('inputStart', {static: true})
-  inputStart!: ElementRef;
-  @ViewChild('inputTarget', {static: true})
-  inputTarget!: ElementRef;
+  @ViewChild('inputStartLat', {static: true})
+  inputStartLat!: ElementRef;
+  @ViewChild('inputStartLong', {static: true})
+  inputStartLong!: ElementRef;
+  @ViewChild('inputTargetLat', {static: true})
+  inputTargetLat!: ElementRef;
+  @ViewChild('inputTargetLong', {static: true})
+  inputTargetLong!: ElementRef;
   @ViewChild('inputRange', {static: true})
   inputRange!: ElementRef;
+  @ViewChild('sidebar', {static: true})
+  sideBar!: ElementRef;
+  @ViewChild('homeActive', {static: true})
+  homeActive!: ElementRef;
 
   /*
    * Services or other dependencies are often imported via dependency injection.
@@ -41,9 +49,6 @@ export class AppComponent {
   receiveMap(map: Map): void {
     // This will throw an ExpressionChangedAfterItHasBeenCheckedError error in dev mode. That's okay and not problematic.
     this.map = map;
-    setTimeout(() => {
-      this.initTestProcess();
-    }, 2000);
   }
 
   initTestProcess(): void {
@@ -54,35 +59,6 @@ export class AppComponent {
      *
      * Konstanz [47.6779, 9.1732], Stuttgart [48.7758, 9.1829], Dresden [51.0504, 13.7373]
      */
-
-      // User Action 1: input from Konstanz to Dresden
-    const initLocations: FeatureCollection = {
-        type: 'FeatureCollection',
-        features: [{
-          type: 'Feature',
-          properties: {
-            name: 'Konstanz',
-            type: 'Departure'
-          },
-          geometry: {
-            type: 'Point',
-            coordinates: [9.1732, 47.6779], // Konstanz
-          }
-        }, {
-          type: 'Feature',
-          properties: {
-            name: 'Dresden',
-            type: 'Destination'
-          },
-          geometry: {
-            type: 'Point',
-            coordinates: [13.7373, 51.0504], // Dresden
-          }
-        }, ]
-      };
-
-    this.mapComponent.initDepDest(initLocations);
-    this.mapComponent.route();
 
     // User Action 2: Select points along the path and show isochrones with stations
     setTimeout(() => {
@@ -117,12 +93,50 @@ export class AppComponent {
   }
 
   public calculateRoute(): void {
-    console.log(this.inputStart.nativeElement.value);
-    console.log(this.inputTarget.nativeElement.value);
-    console.log(this.inputRange.nativeElement.value);
+    this.closeSideBar();
+    // Format: [long ,lat]
+    const start = [parseFloat(this.inputStartLong.nativeElement.value), parseFloat(this.inputStartLat.nativeElement.value)];
+    const target = [parseFloat(this.inputTargetLong.nativeElement.value), parseFloat(this.inputTargetLat.nativeElement.value)];
+    const range = parseFloat(this.inputRange.nativeElement.value);
+    // Convert km to m.
+    this.mapComponent.setMaxRange(range * 1000);
     this.spinnerService.show();
-    setTimeout(() => {
-      this.spinnerService.hide();
-    }, 2000);
+    const initLocations: FeatureCollection = {
+      type: 'FeatureCollection',
+      features: [{
+        type: 'Feature',
+        properties: {
+          name: 'Start',
+          type: 'Departure'
+        },
+        geometry: {
+          type: 'Point',
+          coordinates: start
+        }
+      }, {
+        type: 'Feature',
+        properties: {
+          name: 'Target',
+          type: 'Destination'
+        },
+        geometry: {
+          type: 'Point',
+          coordinates: target
+        }
+      }, ]
+    };
+    this.mapComponent.initDepDest(initLocations);
+    this.mapComponent.route();
+    this.initTestProcess();
+    this.spinnerService.hide();
+  }
+
+  private closeSideBar(): void {
+    if (!this.sideBar.nativeElement.classList.contains('collapsed')) {
+      this.sideBar.nativeElement.classList.add('collapsed');
+    }
+    if (this.homeActive.nativeElement.classList.contains('active')) {
+      this.homeActive.nativeElement.classList.remove('active');
+    }
   }
 }
