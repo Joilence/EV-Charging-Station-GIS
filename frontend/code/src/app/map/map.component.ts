@@ -83,6 +83,8 @@ export class MapComponent {
   }
 
   public selectDropPoint(location: LatLngTuple, range: number): void {
+    this.removeAllStations();
+    this.removeAllIsochrones();
     this.dataService.getIsochrones([location], 'distance', [range]).subscribe((isochrones: FeatureCollection) => {
       this.addIsochrones(isochrones);
     });
