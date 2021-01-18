@@ -45,15 +45,8 @@ export class RoutingService {
     this.numOfSelectedStations = 0;
   }
 
-  public handleRoute(featureCollection: FeatureCollection): FeatureCollection {
-    const maxRange = this.maxRange;
-    const dangerBattery = this.dangerBattery;
+  public handleRoute(featureCollection: FeatureCollection, map: Map, maxRange: number, dangerBattery: number): FeatureCollection {
     const wholeRoute = featureCollection.features[0] as Feature;
-
-    // data check
-    console.log('rs.maxRange:', this.maxRange);
-    console.log('rs.dangerBattery:', this.dangerBattery);
-    console.log('rs.map:', this.map);
 
     if (wholeRoute.properties) {
       wholeRoute.properties.type = 'Whole Route';
@@ -123,7 +116,7 @@ export class RoutingService {
     // console.log('extract locations for getCurrentRoute():', locations);
     const routeObs = this.dataService.getRoute('driving-car', locations);
     // console.log('route:', route);
-    return routeObs.pipe(map(this.handleRoute));
+    return routeObs.pipe(map((routes) => this.handleRoute(routes, this.map, this.maxRange, this.dangerBattery)));
   }
 
   public getCurrentWayPoints(): FeatureCollection {

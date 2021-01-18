@@ -93,9 +93,7 @@ export class MapComponent {
 
   public addRoutePath(routeObs: Observable<FeatureCollection>): void {
     routeObs.subscribe((route: FeatureCollection) => {
-      // const processedRoute = this.handleRoute(route);
-      const processedRoute = route;
-      console.log('addRoutePath: processed route', processedRoute);
+      console.log('addRoutePath: processed route', route);
 
       const styles = (feature: any) => {
         // console.log(feature);
@@ -129,7 +127,7 @@ export class MapComponent {
             };
         }
       };
-      const routeGeoJSON = new GeoJSON(processedRoute, {
+      const routeGeoJSON = new GeoJSON(route, {
         style: styles,
       });
       this.removeAllStations();
