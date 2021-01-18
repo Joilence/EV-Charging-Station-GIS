@@ -81,8 +81,7 @@ export class AppComponent {
           address: 'Eichstraße 7',
         }
       };
-      this.mapComponent.addNewStation(selectedStation);
-      this.mapComponent.route();
+      this.mapComponent.selectStation(selectedStation);
     }, 5000);
   }
 

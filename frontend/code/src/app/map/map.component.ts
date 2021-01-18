@@ -82,10 +82,6 @@ export class MapComponent {
     this.routingService.maxRange = maxRange;
   }
 
-  public addNewStation(station: Feature): void {
-    this.routingService.addNewStation(station);
-  }
-
   public selectDropPoint(location: LatLngTuple, range: number): void {
     this.dataService.getIsochrones([location], 'distance', [range]).subscribe((isochrones: FeatureCollection) => {
       this.addIsochrones(isochrones);
@@ -93,6 +89,11 @@ export class MapComponent {
     this.dataService.getStations([location], [range]).subscribe((stations: FeatureCollection) => {
       this.addStations(stations);
     });
+  }
+
+  public selectStation(station: Feature): void {
+    this.routingService.addNewStation(station);
+    this.route();
   }
 
   /**
