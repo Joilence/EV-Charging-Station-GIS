@@ -1,13 +1,13 @@
 <div id="app">
   <app-map (map$)="receiveMap($event)"></app-map>
   <leaflet-sidebar-control [map]="map" [options]="sidebarOptions"></leaflet-sidebar-control>
-  <div id="sidebar" class="leaflet-sidebar collapsed">
+  <div id="sidebar" #sidebar class="leaflet-sidebar collapsed">
     <!-- Nav tabs -->
     <div class="leaflet-sidebar-tabs">
       <!-- top aligned tabs -->
       <ul role="tablist">
-        <li><a href="#home" role="tab"><i class="fa fa-bars active"></i></a></li>
-        <li><a href="#settings" role="tab"><i class="fa fa-cogs active"></i></a></li>
+        <li #homeActive><a href="#home" role="tab"><i class="fa fa-bars active"></i></a></li>
+        <li><a href="#settings" role="tab"><i class="fa fa-cogs"></i></a></li>
       </ul>
       <!-- bottom aligned tabs -->
       <ul role="tablist">
@@ -27,16 +27,26 @@
         <div class="leaflet-sidebar-custom-content">
 
           <h3 class="text-center w-100">Route planning (coordinates)</h3>
-          <mat-form-field class="w-100">
-            <mat-label>Start</mat-label>
-            <input #inputStart matInput>
+          <mat-form-field class="w-50 pr-1">
+            <mat-label>Start: Latitude</mat-label>
+            <input #inputStartLat type="number" matInput value="47.6779">
           </mat-form-field>
-          <mat-form-field class="w-100">
-            <mat-label>Target</mat-label>
-            <input #inputTarget matInput>
+          <mat-form-field class="w-50 pl-1">
+            <mat-label>Start: Longitude</mat-label>
+            <input #inputStartLong type="number" matInput value="9.1732">
           </mat-form-field>
-          <mat-form-field class="w-100">
-            <mat-label>Car Range</mat-label>
+          <br/>
+          <mat-form-field class="w-50 pr-1">
+            <mat-label>Target: Latitude</mat-label>
+            <input #inputTargetLat type="number" matInput value="51.0504">
+          </mat-form-field>
+          <mat-form-field class="w-50 pl-1">
+            <mat-label>Target: Longitude</mat-label>
+            <input #inputTargetLong type="number" matInput value="13.7373">
+          </mat-form-field>
+          <br/>
+          <mat-form-field class="w-50 pr-1">
+            <mat-label>Car Range (km)</mat-label>
             <input type="number" value="200" #inputRange matInput>
           </mat-form-field>
           <button class="text-center w-100 mt-3" mat-raised-button color="primary" (click)="calculateRoute()">

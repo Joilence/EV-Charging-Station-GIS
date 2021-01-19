@@ -1,8 +1,7 @@
 /// <reference types='leaflet-sidebar-v2' />
 import {Component, EventEmitter, Output} from '@angular/core';
 import {Feature, FeatureCollection, Geometry} from 'geojson';
-import {GeoJSON, Icon, latLng, LayerGroup, Map, Marker, Polyline, TileLayer} from 'leaflet';
-import {extract} from './leaflet-geometryutil.js';
+import {GeoJSON, Icon, latLng, LayerGroup, Map, Marker, TileLayer} from 'leaflet';
 import {RoutingService} from '../services/routing.service';
 import {Observable} from 'rxjs';
 
@@ -45,11 +44,14 @@ export class MapComponent {
     this.map = map;
     this.map$.emit(map);
     this.routingService.setMap(this.map);
+    this.routingService.maxRange = 300000;
+    this.routingService.dangerBattery = 0.2;
+    console.log('map.com: set param to rs.');
     // some settings for a nice shadows, etc.
     const iconRetinaUrl = './assets/marker-icon-2x.png';
     const iconUrl = './assets/marker-icon.png';
     const shadowUrl = './assets/marker-shadow.png';
-    const iconDefault = new Icon({
+    Marker.prototype.options.icon = new Icon({
       iconRetinaUrl,
       iconUrl,
       shadowUrl,
@@ -59,8 +61,28 @@ export class MapComponent {
       tooltipAnchor: [16, -28],
       shadowSize: [41, 41],
     });
+  }
 
-    Marker.prototype.options.icon = iconDefault;
+  /**
+   *  #######################################################################
+   *  ########################### Exposed API ###############################
+   *  #######################################################################
+   */
+
+  public initDepDest(initLocations: FeatureCollection): void {
+    this.routingService.initDepDest(initLocations);
+  }
+
+  public route(): void {
+    this.addRoutePath(this.routingService.getCurrentRoute());
+  }
+
+  public setMaxRange(maxRange: number): void {
+    this.routingService.maxRange = maxRange;
+  }
+
+  public addNewStation(station: Feature): void {
+    this.routingService.addNewStation(station);
   }
 
   /**
@@ -69,70 +91,9 @@ export class MapComponent {
    *  #######################################################################
    */
 
-  public handleRoute(featureCollection: FeatureCollection): FeatureCollection {
-    const maxRange = this.routingService.maxRange;
-    const dangerBattery = this.routingService.dangerBattery;
-    const wholeRoute = featureCollection.features[0] as Feature;
-    // TODO: TS data safety check
-    wholeRoute.properties.type = 'Whole Route';
-    const wholeRouteLine = new Polyline(wholeRoute.geometry.coordinates);
-    const wholeRouteDistance = wholeRoute.properties.summary.distance;
-
-    // danger segment (ds)
-    // TODO: check every segment instead of only last one
-    let isDanger = false;
-    const segments = wholeRoute.properties.segments;
-    const lastSegmentDistance = segments[segments.length - 1].distance;
-    // console.log('lastSegmentDistance: ', lastSegmentDistance);
-    if (lastSegmentDistance > maxRange * (1 - dangerBattery)) {
-      isDanger = true;
-      const previousSegmentsDistance = wholeRouteDistance - lastSegmentDistance;
-      const dsStartDistance = previousSegmentsDistance + maxRange * (1 - dangerBattery);
-      const dsEndDistance = previousSegmentsDistance + Math.min(maxRange, lastSegmentDistance);
-      const dsStartPercent = dsStartDistance / wholeRouteDistance;
-      const dsEndPercent = dsEndDistance / wholeRouteDistance;
-      // console.log('previous seg dis:', previousSegmentsDistance);
-      // TODO: ugly code: reverse [lat, lng] for unknown problem; 3 places;
-      const dsCors = Array.from(extract(this.map, wholeRouteLine, dsStartPercent, dsEndPercent), e => {
-        return [e.lat, e.lng];
-      });
-      // console.log(dsCors);
-      const dsLine = new Polyline(dsCors);
-      const dsGeoJSON = dsLine.toGeoJSON();
-      dsGeoJSON.geometry.coordinates = dsCors;
-      dsGeoJSON.properties.type = 'Danger Segment';
-      // console.log('Danger Segment:', dsGeoJSON);
-      // TODO: ugly code fix
-      const ssCors = Array.from(extract(this.map, wholeRouteLine, 0, dsStartPercent), e => {
-        return [e.lat, e.lng];
-      });
-      const ssLine = new Polyline(ssCors);
-      const ssGeoJSON = ssLine.toGeoJSON();
-      ssGeoJSON.geometry.coordinates = ssCors;
-      ssGeoJSON.properties.type = 'Safe Segment';
-
-      featureCollection.features.push(dsGeoJSON);
-      featureCollection.features.push(ssGeoJSON);
-    }
-
-    // safe segment (ss)
-    if (!isDanger) {
-      // TODO: ugly code fix
-      const ssGeoJSON = wholeRouteLine.toGeoJSON();
-      ssGeoJSON.geometry.coordinates = wholeRoute.geometry.coordinates;
-      ssGeoJSON.properties.type = 'Safe Segment';
-      featureCollection.features.push(ssGeoJSON);
-    }
-
-    // fc.features = fc.features.slice(1, 3);
-    return featureCollection;
-  }
-
-  // TODO: cannot find Observable but circular import
   public addRoutePath(routeObs: Observable<FeatureCollection>): void {
     routeObs.subscribe((route: FeatureCollection) => {
-      const processedRoute = this.handleRoute(route);
-      console.log('addRoutePath: processed route', processedRoute);
+      console.log('addRoutePath: processed route', route);
 
       const styles = (feature: any) => {
         // console.log(feature);
@@ -166,7 +127,7 @@ export class MapComponent {
             };
         }
       };
-      const routeGeoJSON = new GeoJSON(processedRoute, {
+      const routeGeoJSON = new GeoJSON(route, {
         style: styles,
       });
       this.removeAllStations();
@@ -180,7 +141,7 @@ export class MapComponent {
     this.routeLayerGroup = new LayerGroup();
     routeGeoJSON.addTo(this.routeLayerGroup);
     this.routeLayerGroup.addTo(this.map);
-    this.map.fitBounds(routeGeoJSON.getBounds());
+    this.map.fitBounds(routeGeoJSON.getBounds(), {padding: [50, 50]});
     this.addWayPoints(this.routingService.getCurrentWayPoints());
   }
 
@@ -203,6 +164,7 @@ export class MapComponent {
       this.isochronesLayerGroup = new LayerGroup();
       isochronesJSON.addTo(this.isochronesLayerGroup);
       this.isochronesLayerGroup.addTo(this.map);
+      this.map.fitBounds(isochronesJSON.getBounds(), {padding: [100, 100]});
     } else {
       console.log('remove isochrones');
       this.map.removeLayer(this.isochronesLayerGroup);
