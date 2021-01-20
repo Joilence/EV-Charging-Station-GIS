@@ -240,7 +240,7 @@ def parseStations(queryResults):
         stations_geojson.append({
             "type": "Feature",
             "id": s["objectid"],
-            "properties":{
+            "properties": {
                 "type": "Station",
                 "address": s["adresse"],
                 "city": s["postleitzahl_ort"],
@@ -307,8 +307,17 @@ def calcScore(station):
         if(r["properties"]["amenity"]=="rated_restaurant"):
             score += 2
     return score
-    
 
+
+@app.route('/stations/all', methods=["GET"])
+def getAllStations():
+    query = """
+    SELECT y as lat, x as lng
+    FROM charging_stations
+    """
+    return jsonify({
+        "type": "FeatureCollection", "features": execQuery(query)
+    }), 200
 
 
 #####################################################################################
