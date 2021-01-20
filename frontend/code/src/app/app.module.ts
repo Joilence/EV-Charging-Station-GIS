@@ -18,6 +18,7 @@ import {LeafletModule} from '@asymmetrik/ngx-leaflet';
 import {SpinnerComponent} from './spinner/spinner.component';
 import {SpinnerOverlayComponent} from './spinner/overlay/spinner-overlay.component';
 import {Overlay, OverlayModule} from '@angular/cdk/overlay';
+import {MatSliderModule} from '@angular/material/slider';
 
 @NgModule({
   declarations: [AppComponent, MapComponent, SpinnerComponent, SpinnerOverlayComponent],
@@ -32,9 +33,10 @@ import {Overlay, OverlayModule} from '@angular/cdk/overlay';
     HttpClientModule,
     LeafletModule,
     NgxSidebarControlModule,
-    OverlayModule
+    OverlayModule,
+    MatSliderModule
   ],
   providers: [Overlay],
-  bootstrap: [AppComponent],
+  bootstrap: [AppComponent]
 })
 export class AppModule {}

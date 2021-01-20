@@ -1,9 +1,15 @@
 /// <reference types='leaflet-sidebar-v2' />
 import {Component, EventEmitter, Output} from '@angular/core';
 import {Feature, FeatureCollection, Geometry} from 'geojson';
-import {GeoJSON, Icon, latLng, LayerGroup, Map, Marker, TileLayer} from 'leaflet';
+import {GeoJSON, Icon, latLng, Layer, LayerGroup, Map, Marker, TileLayer} from 'leaflet';
+import 'leaflet.heat/dist/leaflet-heat';
 import {RoutingService} from '../services/routing.service';
 import {Observable} from 'rxjs';
+import {MapService} from '../services/map.service';
+import {SpinnerOverlayService} from '../services/spinner-overlay.service';
+import {max} from 'rxjs/operators';
+
+declare var L: any;
 
 @Component({
   selector: 'app-map',
@@ -12,8 +18,9 @@ import {Observable} from 'rxjs';
 })
 export class MapComponent {
 
-  constructor(private routingService: RoutingService) {
-
+  constructor(private routingService: RoutingService, private mapService: MapService,
+              private spinnerService: SpinnerOverlayService) {
+    this.mapService.setMapComponent(this);
   }
 
   /**
@@ -28,6 +35,8 @@ export class MapComponent {
   private wayPointsLayerGroup: LayerGroup = new LayerGroup();
   private stationsLayerGroup: LayerGroup = new LayerGroup();
   private isochronesLayerGroup: LayerGroup = new LayerGroup();
+
+  private layers: Layer[] = [];
 
   options = {
     layers: [
@@ -243,5 +252,41 @@ export class MapComponent {
 
   public removeAllWayPoints(): void {
     this.updateWayPointsLayer(undefined);
+  }
+
+  public addStationsHeat(radius: number, maxZoom: number): void {
+    this.spinnerService.show('Loading heat map...');
+    this.mapService.parseStations(radius, maxZoom);
+  }
+
+  public addHeatMapLayer(data: any[], clearMap: boolean = false, radius: number, maxZoom: number): void {
+    if (clearMap) {
+      this.clearMap();
+    }
+    this.removeLayers();
+    const heatMapLayer = L.heatLayer(data, {
+      radius,
+      gradient: {0.0: 'blue', 0.65: 'lime', 1.0: 'red'},
+      blur: 15,
+      maxZoom
+    });
+    this.layers.push(heatMapLayer);
+    this.map.addLayer(heatMapLayer);
+    this.spinnerService.hide();
+  }
+
+  public removeLayers(): void {
+    for (const layer of this.layers) {
+      this.map.removeLayer(layer);
+    }
+    this.layers = [];
+  }
+
+  public clearMap(): void {
+    this.removeAllIsochrones();
+    this.removeAllStations();
+    this.removeAllWayPoints();
+    this.removeLayers();
+    this.map.removeLayer(this.routeLayerGroup);
   }
 }
