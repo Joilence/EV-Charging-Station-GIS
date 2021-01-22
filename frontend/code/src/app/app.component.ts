@@ -3,7 +3,7 @@ import {Component, ElementRef, ViewChild} from '@angular/core';
 import {Feature, FeatureCollection} from 'geojson';
 import {MapComponent} from './map/map.component';
 import {DataService} from './services/data.service';
-import {Map, SidebarOptions} from 'leaflet';
+import {Map, SidebarOptions, LatLngTuple} from 'leaflet';
 import {SpinnerOverlayService} from './services/spinner-overlay.service';
 
 @Component({
@@ -71,13 +71,7 @@ export class AppComponent {
         location: [[9.1829, 48.7758]], // Stuttgart
         range: [10000]
       };
-      this.dataService.getIsochrones(selectedPoint.location, 'distance', selectedPoint.range).subscribe((isochrones: FeatureCollection) => {
-        this.mapComponent.addIsochrones(isochrones);
-      });
-
-      this.dataService.getStations(selectedPoint.location, selectedPoint.range).subscribe((stations: FeatureCollection) => {
-        this.mapComponent.addStations(stations);
-      });
+      this.mapComponent.selectDropPoint(selectedPoint.location[0] as LatLngTuple, selectedPoint.range[0]);
     }, 3000);
 
     // User Action 3: Select stations and re-route
@@ -92,8 +86,7 @@ export class AppComponent {
           address: 'Eichstraße 7',
         }
       };
-      this.mapComponent.addNewStation(selectedStation);
-      this.mapComponent.route();
+      this.mapComponent.selectStation(selectedStation);
     }, 5000);
   }
 

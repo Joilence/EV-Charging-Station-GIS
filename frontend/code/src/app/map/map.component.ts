@@ -1,9 +1,10 @@
 /// <reference types='leaflet-sidebar-v2' />
 import {Component, EventEmitter, Output} from '@angular/core';
 import {Feature, FeatureCollection, Geometry} from 'geojson';
-import {GeoJSON, Icon, latLng, Layer, LayerGroup, Map, Marker, TileLayer} from 'leaflet';
+import {GeoJSON, Icon, latLng, LatLngTuple, Layer, LayerGroup, Map, Marker, TileLayer} from 'leaflet';
 import 'leaflet.heat/dist/leaflet-heat';
 import {RoutingService} from '../services/routing.service';
+import {DataService} from '../services/data.service';
 import {Observable} from 'rxjs';
 import {MapService} from '../services/map.service';
 import {SpinnerOverlayService} from '../services/spinner-overlay.service';
@@ -19,7 +20,7 @@ declare var L: any;
 export class MapComponent {
 
   constructor(private routingService: RoutingService, private mapService: MapService,
-              private spinnerService: SpinnerOverlayService) {
+              private spinnerService: SpinnerOverlayService, private dataService: DataService) {
     this.mapService.setMapComponent(this);
   }
 
@@ -90,8 +91,20 @@ export class MapComponent {
     this.routingService.maxRange = maxRange;
   }
 
-  public addNewStation(station: Feature): void {
+  public selectDropPoint(location: LatLngTuple, range: number): void {
+    this.removeAllStations();
+    this.removeAllIsochrones();
+    this.dataService.getIsochrones([location], 'distance', [range]).subscribe((isochrones: FeatureCollection) => {
+      this.addIsochrones(isochrones);
+    });
+    this.dataService.getStations([location], [range]).subscribe((stations: FeatureCollection) => {
+      this.addStations(stations);
+    });
+  }
+
+  public selectStation(station: Feature): void {
     this.routingService.addNewStation(station);
+    this.route();
   }
 
   /**

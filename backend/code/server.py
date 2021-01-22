@@ -272,11 +272,11 @@ def appendDistance(queryResult, routepoint):
 @app.route('/stations-score', methods=["POST"])
 def stations_score():
     #array of array
-    routepoint= request.json["routepoint"]
+    routepoint= request.json["locations"]
     #array
-    station_distance = request.json["station-distance"]
+    station_distance = request.json["stationRange"]
     #integer
-    amenity_distance = request.json["amenity-distance"]
+    amenity_distance = request.json["amenityRange"]
 
     stations = queryStations(routepoint, station_distance)
 

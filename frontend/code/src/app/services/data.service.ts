@@ -36,9 +36,9 @@ export class DataService {
     return this.http.post<any>(url, {locations, range}, httpOptions);
   }
 
-  public getStationsScore(routepoint: string, distance: string): Observable<any> {
+  public getStationsScore(locations: number[][], stationRange: number[], amenityRange: number): Observable<any> {
     const url = this.baseUrl + 'stations-score';
-    return this.http.post<any>(url, {routepoint, distance}, httpOptions);
+    return this.http.post<any>(url, {locations, stationRange, amenityRange}, httpOptions);
   }
 
   public getRestaurants(station: string, distance: string): Observable<any> {
