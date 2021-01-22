@@ -15,9 +15,12 @@ export class AppComponent {
 
   public map!: Map;
 
+  public maxZoomHeat = 11;
+  public radiusHeat = 10;
+
   public sidebarOptions: SidebarOptions = {
     position: 'left',
-    autopan: true,
+    autopan: false,
     closeButton: true,
     container: 'sidebar',
   };
@@ -38,6 +41,8 @@ export class AppComponent {
   sideBar!: ElementRef;
   @ViewChild('homeActive', {static: true})
   homeActive!: ElementRef;
+  @ViewChild('layerTab', {static: true})
+  layerTab!: ElementRef;
 
   /*
    * Services or other dependencies are often imported via dependency injection.
@@ -131,5 +136,14 @@ export class AppComponent {
     if (this.homeActive.nativeElement.classList.contains('active')) {
       this.homeActive.nativeElement.classList.remove('active');
     }
+    if (this.layerTab.nativeElement.classList.contains('active')) {
+      this.layerTab.nativeElement.classList.remove('active');
+    }
+  }
+
+  public addHeatMapStationsLayer(): void {
+    console.log(this.map.getZoom());
+    this.mapComponent.addStationsHeat(this.radiusHeat, this.maxZoomHeat);
+    // this.closeSideBar();
   }
 }
