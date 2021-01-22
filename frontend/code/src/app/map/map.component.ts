@@ -1,7 +1,7 @@
 /// <reference types='leaflet-sidebar-v2' />
 import {Component, EventEmitter, Output} from '@angular/core';
 import {Feature, FeatureCollection, Geometry} from 'geojson';
-import {GeoJSON, Icon, latLng, Layer, LayerGroup, Map, Marker, TileLayer} from 'leaflet';
+import {GeoJSON, Icon, latLng, LatLngTuple, Layer, LayerGroup, Map, Marker, TileLayer} from 'leaflet';
 import 'leaflet.heat/dist/leaflet-heat';
 import {RoutingService} from '../services/routing.service';
 import {DataService} from '../services/data.service';
@@ -20,7 +20,7 @@ declare var L: any;
 export class MapComponent {
 
   constructor(private routingService: RoutingService, private mapService: MapService,
-              private spinnerService: SpinnerOverlayService) {
+              private spinnerService: SpinnerOverlayService, private dataService: DataService) {
     this.mapService.setMapComponent(this);
   }
 
