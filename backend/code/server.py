@@ -392,7 +392,10 @@ def parseRestaurants(queryResults):
                 "lat": r["lat"],
                 "lng": r["lng"]
             },
-            "geometry": r["way"] #probably need cast to str
+            "geometry": {
+                "type": "Point",
+                "coordinates": [r["lng"], r["lat"]],
+            } #probably need cast to str
         })
     return restaurants_geojson
 
