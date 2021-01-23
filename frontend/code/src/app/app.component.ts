@@ -78,6 +78,7 @@ export class AppComponent {
     setTimeout(() => {
       const selectedStation: Feature = {
         type: 'Feature',
+        id: '113',
         geometry: {
           type: 'Point',
           coordinates: [9.178289, 48.774372],
@@ -86,8 +87,9 @@ export class AppComponent {
           address: 'Eichstraße 7',
         }
       };
-      this.mapComponent.selectStation(selectedStation);
-    }, 5000);
+      // this.mapComponent.selectStation(selectedStation);
+      this.mapComponent.showRestaurantsOfStation(selectedStation);
+    }, 10000);
   }
 
   public calculateRoute(): void {
