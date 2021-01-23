@@ -8,8 +8,6 @@ import {DataService} from '../services/data.service';
 import {Observable} from 'rxjs';
 import {MapService} from '../services/map.service';
 import {SpinnerOverlayService} from '../services/spinner-overlay.service';
-import {max} from 'rxjs/operators';
-import { stat } from 'fs';
 
 declare var L: any;
 
@@ -101,6 +99,8 @@ export class MapComponent {
   public selectDropPoint(location: LatLngTuple, range: number): void {
     this.removeAllStations();
     this.removeAllIsochrones();
+    this.removeAllRestaurants();
+    this.cleanCache();
     this.dataService.getIsochrones([location], 'distance', [range]).subscribe((isochrones: FeatureCollection) => {
       this.isochronesGeoJSONCache = isochrones;
       this.addIsochrones(isochrones);
