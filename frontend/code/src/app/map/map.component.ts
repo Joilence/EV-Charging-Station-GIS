@@ -119,6 +119,12 @@ export class MapComponent {
     this.addRestaurants(station, this.routingService.amenityRange);
   }
 
+  public returnToSeeStations() {
+    this.removeAllRestaurants()
+    this.addStations(this.stationsFeatureCollectionCache as FeatureCollection)
+    this.addIsochrones(this.isochronesGeoJSONCache as FeatureCollection)
+  }
+
   public selectStation(station: Feature): void {
     this.routingService.addNewStation(station);
     this.route();
@@ -277,12 +283,6 @@ export class MapComponent {
       });
       this.updateRestaurantsLayer(restaurantsGeoJSON, (station.geometry as Point).coordinates.reverse() as LatLngTuple, amenityRange);
     }
-  }
-
-  public returnToSeeStations() {
-    this.removeAllRestaurants()
-    this.addStations(this.stationsFeatureCollectionCache as FeatureCollection)
-    this.addIsochrones(this.isochronesGeoJSONCache as FeatureCollection)
   }
 
   public updateRestaurantsLayer(restaurantsGeoJSON: GeoJSON | undefined, coordinate: LatLngTuple, amenityRange: number): void {
