@@ -23,6 +23,7 @@ export class RoutingService {
   public numOfSelectedStations = 0;
   public maxRange = 300000;
   public dangerBattery = 0.2;
+  public amenityRange = 1000;
 
   public addNewStation(station: Feature): void {
     if (station.properties) {

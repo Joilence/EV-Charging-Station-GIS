@@ -1,7 +1,7 @@
 /// <reference types='leaflet-sidebar-v2' />
 import {Component, EventEmitter, Output} from '@angular/core';
-import {Feature, FeatureCollection, Geometry} from 'geojson';
-import {GeoJSON, Icon, latLng, LatLngTuple, Layer, LayerGroup, Map, Marker, TileLayer} from 'leaflet';
+import {Feature, FeatureCollection, Geometry, Point} from 'geojson';
+import {Circle, GeoJSON, Icon, LatLng, latLng, LatLngExpression, LatLngTuple, Layer, LayerGroup, Map, Marker, TileLayer} from 'leaflet';
 import 'leaflet.heat/dist/leaflet-heat';
 import {RoutingService} from '../services/routing.service';
 import {DataService} from '../services/data.service';
@@ -9,6 +9,7 @@ import {Observable} from 'rxjs';
 import {MapService} from '../services/map.service';
 import {SpinnerOverlayService} from '../services/spinner-overlay.service';
 import {max} from 'rxjs/operators';
+import { stat } from 'fs';
 
 declare var L: any;
 
@@ -36,6 +37,7 @@ export class MapComponent {
   private wayPointsLayerGroup: LayerGroup = new LayerGroup();
   private stationsLayerGroup: LayerGroup = new LayerGroup();
   private isochronesLayerGroup: LayerGroup = new LayerGroup();
+  private restaurantsLayerGroup: LayerGroup = new LayerGroup();
 
   private layers: Layer[] = [];
 
@@ -56,6 +58,7 @@ export class MapComponent {
     this.routingService.setMap(this.map);
     this.routingService.maxRange = 300000;
     this.routingService.dangerBattery = 0.2;
+    this.routingService.amenityRange = 1000;
     console.log('map.com: set param to rs.');
     // some settings for a nice shadows, etc.
     const iconRetinaUrl = './assets/marker-icon-2x.png';
@@ -91,15 +94,29 @@ export class MapComponent {
     this.routingService.maxRange = maxRange;
   }
 
+  public setAmenityRange(range: number): void {
+    this.routingService.amenityRange = range;
+  }
+
   public selectDropPoint(location: LatLngTuple, range: number): void {
     this.removeAllStations();
     this.removeAllIsochrones();
     this.dataService.getIsochrones([location], 'distance', [range]).subscribe((isochrones: FeatureCollection) => {
+      this.isochronesGeoJSONCache = isochrones;
       this.addIsochrones(isochrones);
     });
-    this.dataService.getStations([location], [range]).subscribe((stations: FeatureCollection) => {
+    // this.dataService.getStations([location], [range]).subscribe((stations: FeatureCollection) => {
+    //   this.addStations(stations);
+    // });
+    this.dataService.getStationsScore([location], [range], this.routingService.amenityRange).subscribe((stations: FeatureCollection) => {
       this.addStations(stations);
+      this.stationsFeatureCollectionCache = stations;
+      this.updateRestaurantCache(stations);
     });
+  }
+
+  public showRestaurantsOfStation(station: Feature): void {
+    this.addRestaurants(station, this.routingService.amenityRange);
   }
 
   public selectStation(station: Feature): void {
@@ -207,7 +224,7 @@ export class MapComponent {
   public addStations(stations: FeatureCollection): void {
     console.log('addStations:', stations);
     const onEachFeature = (feature: Feature<Geometry, any>, layer: L.Layer) => {
-      layer.bindPopup(`${feature.properties.type}: ${feature.properties.address}`);
+      layer.bindPopup(`${feature.properties.type}: ${feature.properties.address}; ${feature.id}`);
     };
 
     const stationsGeoJSON = new GeoJSON(stations, {
@@ -236,13 +253,67 @@ export class MapComponent {
 
   /**
    *  #######################################################################
+   *  ############################# Restaurants #############################
+   *  #######################################################################
+   */
+
+
+  public addRestaurants(station: Feature, amenityRange: number) {
+    this.removeAllStations();
+    this.removeAllIsochrones();
+    const onEachFeature = (feature: Feature<Geometry, any>, layer: Layer) => {
+      layer.bindPopup(`${JSON.stringify(feature.properties, null, 2)}`);
+    };
+
+    if (this.restaurantsOfStations && station.id && (station.geometry as Point).coordinates) {
+      console.log('add restaurants to:', station.id)
+      const restaurants: FeatureCollection = {
+        type: 'FeatureCollection',
+        features: this.restaurantsOfStations[station.id as string] as Array<Feature>
+      }
+      console.log(restaurants);
+      const restaurantsGeoJSON = new GeoJSON(restaurants, {
+        onEachFeature,
+      });
+      this.updateRestaurantsLayer(restaurantsGeoJSON, (station.geometry as Point).coordinates.reverse() as LatLngTuple, amenityRange);
+    }
+  }
+
+  public returnToSeeStations() {
+    this.removeAllRestaurants()
+    this.addStations(this.stationsFeatureCollectionCache as FeatureCollection)
+    this.addIsochrones(this.isochronesGeoJSONCache as FeatureCollection)
+  }
+
+  public updateRestaurantsLayer(restaurantsGeoJSON: GeoJSON | undefined, coordinate: LatLngTuple, amenityRange: number): void {
+    if (restaurantsGeoJSON) {
+      this.map.removeLayer(this.restaurantsLayerGroup);
+      this.restaurantsLayerGroup = new LayerGroup();
+      restaurantsGeoJSON.addTo(this.restaurantsLayerGroup);
+      const amenityCircle = new Circle(coordinate, {radius: amenityRange});
+      amenityCircle.addTo(this.restaurantsLayerGroup)
+      this.restaurantsLayerGroup.addTo(this.map);
+      this.map.fitBounds(amenityCircle.getBounds(), {padding: [100, 100]});
+    } else {
+      this.map.removeLayer(this.restaurantsLayerGroup);
+      this.restaurantsLayerGroup = new LayerGroup();
+    }
+  }
+
+  public removeAllRestaurants(): void {
+    this.updateRestaurantsLayer(undefined, [0, 0], NaN);
+  }
+
+
+  /**
+   *  #######################################################################
    *  ############################# Way Points ##############################
    *  #######################################################################
    */
 
   public addWayPoints(wayPoints: FeatureCollection): void {
     // console.log('add way points:', wayPoints);
-    const onEachFeature = (feature: Feature<Geometry, any>, layer: L.Layer) => {
+    const onEachFeature = (feature: Feature<Geometry, any>, layer: Layer) => {
       layer.bindPopup(`${feature.properties.type}: ${feature.properties.name}`);
     };
     const wayPointsGeoJSON = new GeoJSON(wayPoints, {
@@ -301,5 +372,31 @@ export class MapComponent {
     this.removeAllWayPoints();
     this.removeLayers();
     this.map.removeLayer(this.routeLayerGroup);
+  }
+  
+  /**
+   *  #######################################################################
+   *  ################################ Cache ################################
+   *  #######################################################################
+   */
+
+  public isochronesGeoJSONCache: FeatureCollection | undefined;
+  public stationsFeatureCollectionCache: FeatureCollection | undefined;
+  public restaurantsOfStations: { [id: string]: Array<Feature>; } = {};
+
+  public cleanCache(): void {
+    this.isochronesGeoJSONCache = undefined;
+    this.stationsFeatureCollectionCache = undefined;
+    this.restaurantsOfStations = {};
+  }
+
+  public updateRestaurantCache(stations: FeatureCollection): void {
+    this.restaurantsOfStations = {}
+    // console.log(stations);
+    for (const station of stations.features) {
+      if (station.properties && station.properties.closeRestaurants && station.id) {
+        this.restaurantsOfStations[station.id] = station.properties.closeRestaurants
+      }
+    }
   }
 }
