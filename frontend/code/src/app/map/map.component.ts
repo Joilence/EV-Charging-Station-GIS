@@ -1,13 +1,14 @@
 /// <reference types='leaflet-sidebar-v2' />
 import {Component, EventEmitter, Output} from '@angular/core';
 import {Feature, FeatureCollection, Geometry, Point} from 'geojson';
-import {Circle, GeoJSON, Icon, LatLng, latLng, LatLngExpression, LatLngTuple, Layer, LayerGroup, Map, Marker, TileLayer} from 'leaflet';
+import {Circle, GeoJSON, Icon, LatLng, latLng, LatLngTuple, Layer, LayerGroup, Map, Marker, TileLayer} from 'leaflet';
 import 'leaflet.heat/dist/leaflet-heat';
 import {RoutingService} from '../services/routing.service';
 import {DataService} from '../services/data.service';
 import {Observable} from 'rxjs';
 import {MapService} from '../services/map.service';
 import {SpinnerOverlayService} from '../services/spinner-overlay.service';
+import * as awmarkers from 'leaflet.awesome-markers';
 
 declare var L: any;
 
@@ -49,6 +50,10 @@ export class MapComponent {
     zoom: 10,
     center: latLng(48.13, 8.20)
   };
+
+  public isochronesGeoJSONCache: FeatureCollection | undefined;
+  public stationsFeatureCollectionCache: FeatureCollection | undefined;
+  public restaurantsOfStations: { [id: string]: Array<Feature>; } = {};
 
   public onMapReady(map: Map): void {
     this.map = map;
@@ -111,6 +116,7 @@ export class MapComponent {
     this.dataService.getStationsScore([location], [range], this.routingService.amenityRange).subscribe((stations: FeatureCollection) => {
       this.addStations(stations);
       this.stationsFeatureCollectionCache = stations;
+      console.log('Update restaurant cache');
       this.updateRestaurantCache(stations);
     });
   }
@@ -119,10 +125,10 @@ export class MapComponent {
     this.addRestaurants(station, this.routingService.amenityRange);
   }
 
-  public returnToSeeStations() {
-    this.removeAllRestaurants()
-    this.addStations(this.stationsFeatureCollectionCache as FeatureCollection)
-    this.addIsochrones(this.isochronesGeoJSONCache as FeatureCollection)
+  public returnToSeeStations(): void {
+    this.removeAllRestaurants();
+    this.addStations(this.stationsFeatureCollectionCache as FeatureCollection);
+    this.addIsochrones(this.isochronesGeoJSONCache as FeatureCollection);
   }
 
   public selectStation(station: Feature): void {
@@ -264,22 +270,32 @@ export class MapComponent {
    */
 
 
-  public addRestaurants(station: Feature, amenityRange: number) {
+  public addRestaurants(station: Feature, amenityRange: number): void {
     this.removeAllStations();
     this.removeAllIsochrones();
     const onEachFeature = (feature: Feature<Geometry, any>, layer: Layer) => {
       layer.bindPopup(`${JSON.stringify(feature.properties, null, 2)}`);
+      // TODO on click
     };
 
     if (this.restaurantsOfStations && station.id && (station.geometry as Point).coordinates) {
-      console.log('add restaurants to:', station.id)
+      console.log('add restaurants to:', station.id);
       const restaurants: FeatureCollection = {
         type: 'FeatureCollection',
         features: this.restaurantsOfStations[station.id as string] as Array<Feature>
-      }
+      };
       console.log(restaurants);
+      if (restaurants.features === undefined) {
+        return;
+      }
       const restaurantsGeoJSON = new GeoJSON(restaurants, {
-        onEachFeature,
+        onEachFeature, pointToLayer(geoJsonPoint: Feature, latlng: LatLng): Layer {
+          const icon = L.AwesomeMarkers.icon({
+            icon: 'coffee',
+            markerColor: 'red'
+          });
+          return new Marker(latlng, {icon});
+        }
       });
       this.updateRestaurantsLayer(restaurantsGeoJSON, (station.geometry as Point).coordinates.reverse() as LatLngTuple, amenityRange);
     }
@@ -291,7 +307,7 @@ export class MapComponent {
       this.restaurantsLayerGroup = new LayerGroup();
       restaurantsGeoJSON.addTo(this.restaurantsLayerGroup);
       const amenityCircle = new Circle(coordinate, {radius: amenityRange});
-      amenityCircle.addTo(this.restaurantsLayerGroup)
+      amenityCircle.addTo(this.restaurantsLayerGroup);
       this.restaurantsLayerGroup.addTo(this.map);
       this.map.fitBounds(amenityCircle.getBounds(), {padding: [100, 100]});
     } else {
@@ -373,16 +389,12 @@ export class MapComponent {
     this.removeLayers();
     this.map.removeLayer(this.routeLayerGroup);
   }
-  
+
   /**
    *  #######################################################################
    *  ################################ Cache ################################
    *  #######################################################################
    */
-
-  public isochronesGeoJSONCache: FeatureCollection | undefined;
-  public stationsFeatureCollectionCache: FeatureCollection | undefined;
-  public restaurantsOfStations: { [id: string]: Array<Feature>; } = {};
 
   public cleanCache(): void {
     this.isochronesGeoJSONCache = undefined;
@@ -391,11 +403,11 @@ export class MapComponent {
   }
 
   public updateRestaurantCache(stations: FeatureCollection): void {
-    this.restaurantsOfStations = {}
+    this.restaurantsOfStations = {};
     // console.log(stations);
     for (const station of stations.features) {
       if (station.properties && station.properties.closeRestaurants && station.id) {
-        this.restaurantsOfStations[station.id] = station.properties.closeRestaurants
+        this.restaurantsOfStations[station.id] = station.properties.closeRestaurants;
       }
     }
   }
