@@ -53,7 +53,7 @@ export class MapComponent {
     center: latLng(48.13, 8.20)
   };
 
-  public isochronesGeoJSONCache: FeatureCollection | undefined;
+  public isochronesCache: FeatureCollection | undefined;
   public stationsFeatureCollectionCache: FeatureCollection | undefined;
   public restaurantsOfStations: { [id: string]: Array<Feature>; } = {};
 
@@ -109,7 +109,7 @@ export class MapComponent {
     this.removeAllRestaurants();
     this.cleanCache();
     this.dataService.getIsochrones([location], 'distance', [range]).subscribe((isochrones: FeatureCollection) => {
-      this.isochronesGeoJSONCache = isochrones;
+      this.isochronesCache = isochrones;
       this.addIsochrones(isochrones);
     });
     // this.dataService.getStations([location], [range]).subscribe((stations: FeatureCollection) => {
@@ -130,7 +130,7 @@ export class MapComponent {
   public returnToSeeStations(): void {
     this.removeAllRestaurants();
     this.addStations(this.stationsFeatureCollectionCache as FeatureCollection);
-    this.addIsochrones(this.isochronesGeoJSONCache as FeatureCollection);
+    this.addIsochrones(this.isochronesCache as FeatureCollection);
   }
 
   public selectStation(station: Feature): void {
@@ -456,7 +456,7 @@ export class MapComponent {
    */
 
   public cleanCache(): void {
-    this.isochronesGeoJSONCache = undefined;
+    this.isochronesCache = undefined;
     this.stationsFeatureCollectionCache = undefined;
     this.restaurantsOfStations = {};
   }
