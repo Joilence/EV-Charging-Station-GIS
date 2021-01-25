@@ -8,7 +8,9 @@ import {DataService} from '../services/data.service';
 import {Observable} from 'rxjs';
 import {MapService} from '../services/map.service';
 import {SpinnerOverlayService} from '../services/spinner-overlay.service';
-import * as awmarkers from 'leaflet.awesome-markers';
+import 'd3';
+import * as d3 from 'd3';
+import '../../../node_modules/leaflet-fa-markers/L.Icon.FontAwesome';
 
 declare var L: any;
 
@@ -235,12 +237,35 @@ export class MapComponent {
 
   public addStations(stations: FeatureCollection): void {
     console.log('addStations:', stations);
+    if (!stations) {
+      return;
+    }
     const onEachFeature = (feature: Feature<Geometry, any>, layer: L.Layer) => {
       layer.bindPopup(`${feature.properties.type}: ${feature.properties.address}; ${feature.id}`);
     };
+    // Use a logarithmic scaling.
+    const scale = d3.scaleLinear().domain([0, d3.max(stations.features, (station) => {
+      if (!station.properties) {
+        return 0;
+      }
+      return station.properties.score;
+    })]);
+
+    const colorScaleLog = d3.scaleSequential((d) => d3.interpolateRgb('blue', 'green')(scale(d)));
 
     const stationsGeoJSON = new GeoJSON(stations, {
-      onEachFeature,
+      onEachFeature, pointToLayer(geoJsonPoint: Feature<Point, any>, latlng: LatLng): Layer {
+        const icon = new L.icon.fontAwesome({
+          iconClasses: 'fa fa-charging-station',
+          markerColor: colorScaleLog(geoJsonPoint.properties.score),
+          markerFillOpacity: 0.6,
+          markerStrokeWidth: 2,
+          markerStrokeColor: 'grey',
+          // icon style
+          iconColor: '#FFF'
+        });
+        return new Marker(latlng, {icon});
+      }
     });
     this.updateStationsLayer(stationsGeoJSON);
   }
@@ -290,9 +315,18 @@ export class MapComponent {
       }
       const restaurantsGeoJSON = new GeoJSON(restaurants, {
         onEachFeature, pointToLayer(geoJsonPoint: Feature, latlng: LatLng): Layer {
-          const icon = L.AwesomeMarkers.icon({
-            icon: 'coffee',
-            markerColor: 'red'
+          let color = 'black';
+          if (geoJsonPoint.properties && geoJsonPoint.properties.rating && geoJsonPoint.properties.rating > 0) {
+            color = 'yellow';
+          }
+          const icon = new L.icon.fontAwesome({
+            iconClasses: 'fa fa-utensils',
+            markerColor: color,
+            markerFillOpacity: 0.6,
+            markerStrokeWidth: 2,
+            markerStrokeColor: 'grey',
+            // icon style
+            iconColor: '#FFF'
           });
           return new Marker(latlng, {icon});
         }
