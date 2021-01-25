@@ -1,5 +1,5 @@
 /// <reference types='leaflet-sidebar-v2' />
-import {Component, EventEmitter, Output} from '@angular/core';
+import {Component, EventEmitter, HostListener, Output} from '@angular/core';
 import {Feature, FeatureCollection, Geometry, Point} from 'geojson';
 import {Circle, GeoJSON, Icon, LatLng, latLng, LatLngTuple, Layer, LayerGroup, Map, Marker, TileLayer} from 'leaflet';
 import 'leaflet.heat/dist/leaflet-heat';
@@ -241,9 +241,18 @@ export class MapComponent {
       return;
     }
     const onEachFeature = (feature: Feature<Geometry, any>, layer: L.Layer) => {
-      layer.bindPopup(`${feature.properties.type}: ${feature.properties.address}; ${feature.id}`);
+      const popupHtml = `
+        <div>${feature.properties.type}: ${feature.properties.address}; ${feature.id}<br/>
+            <button id="1-${feature.id}" type="button" class="text-center w-100 mt-3 btn btn-secondary station-selected-click">
+                    Select station
+            </button>
+            <button id="2-${feature.id}" type="button" class="text-center w-100 mt-2 btn btn-secondary station-show-restaurant-click">
+                    Show restaurants
+            </button>
+        </div>`;
+      layer.bindPopup(popupHtml);
     };
-    // Use a logarithmic scaling.
+    // Use a linear scaling.
     const scale = d3.scaleLinear().domain([0, d3.max(stations.features, (station) => {
       if (!station.properties) {
         return 0;
@@ -286,6 +295,22 @@ export class MapComponent {
 
   public removeAllStations(): void {
     this.updateStationsLayer(undefined);
+  }
+
+  @HostListener('document:click', ['$event'])
+  public popupClicked(event: any): void {
+    if (event.target.classList.contains('station-selected-click')) {
+      console.log('clicked 1');
+      const stationId = parseInt(event.target.id.substr(2), 10);
+      console.log(stationId);
+      return;
+    }
+    if (event.target.classList.contains('station-show-restaurant-click')) {
+      console.log('clicked 2');
+      const stationId = parseInt(event.target.id.substr(2), 10);
+      console.log(stationId);
+      return;
+    }
   }
 
   /**
