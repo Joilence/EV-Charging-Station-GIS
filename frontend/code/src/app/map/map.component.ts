@@ -235,6 +235,14 @@ export class MapComponent {
    *  #######################################################################
    */
 
+  public getStationFeatureByID(stationID: number): Feature | undefined {
+    for (const station of (this.stationsFeatureCollectionCache as FeatureCollection).features) {
+      // console.log('check:', station.id as number);  
+      if (station.id as number == stationID) return station as Feature;
+    }
+    return undefined;
+  }
+
   public addStations(stations: FeatureCollection): void {
     console.log('addStations:', stations);
     if (!stations) {
@@ -300,15 +308,15 @@ export class MapComponent {
   @HostListener('document:click', ['$event'])
   public popupClicked(event: any): void {
     if (event.target.classList.contains('station-selected-click')) {
-      console.log('clicked 1');
       const stationId = parseInt(event.target.id.substr(2), 10);
-      console.log(stationId);
+      this.selectStation(this.getStationFeatureByID(stationId) as Feature);
+      console.log(`clicked select ${stationId}`);
       return;
     }
     if (event.target.classList.contains('station-show-restaurant-click')) {
-      console.log('clicked 2');
       const stationId = parseInt(event.target.id.substr(2), 10);
-      console.log(stationId);
+      this.addRestaurantsByStationID(stationId);
+      console.log(`clicked show restaurants of ${stationId}`);
       return;
     }
   }
@@ -319,10 +327,16 @@ export class MapComponent {
    *  #######################################################################
    */
 
+  public addRestaurantsByStationID(stationID: number): void {
+    this.addRestaurants(this.getStationFeatureByID(stationID) as Feature, this.routingService.amenityRange);
+  }
 
   public addRestaurants(station: Feature, amenityRange: number): void {
     this.removeAllStations();
     this.removeAllIsochrones();
+
+    // TODO: (jonathan) add selected station again
+
     const onEachFeature = (feature: Feature<Geometry, any>, layer: Layer) => {
       layer.bindPopup(`${JSON.stringify(feature.properties, null, 2)}`);
       // TODO on click
