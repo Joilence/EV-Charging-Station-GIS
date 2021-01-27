@@ -282,15 +282,16 @@ def stations_score():
 
     for s in stations:
         closeRestaurants = queryRestaurants([s["properties"]["lng"], s["properties"]["lat"]], amenity_distance)
+        #delete this for loop to optimize (approximate with linear distance)
+        # for r in closeRestaurants:
+        #     params = {
+        #         "coordinates":[
+        #             [s["properties"]["lng"], s["properties"]["lat"]],
+        #             [r["properties"]["lng"], r["properties"]["lat"]]
+        #         ]
+        #     }
+        #     r["properties"]["distance"] = getRoute(params)["features"][0]["properties"]["summary"]["distance"]
 
-        for r in closeRestaurants:
-            params = {
-                "coordinates":[
-                    [s["properties"]["lng"], s["properties"]["lat"]],
-                    [r["properties"]["lng"], r["properties"]["lat"]]
-                ]
-            }
-            r["properties"]["distance"] = getRoute(params)["features"][0]["properties"]["summary"]["distance"]
         s["properties"]["closeRestaurants"] = closeRestaurants
 
         s["properties"]["score"] = calcScore(s)
@@ -355,13 +356,15 @@ def queryRestaurants(station, distance):
         ST_AsText(a.way),
         ST_X(a.way) as lng,
         ST_Y(a.way) as lat,
-        '0' as rating
+        '0' as rating,
+        ST_Distance(Geography(ST_Transform(a.way ,4326)), ST_GeographyFromText('POINT ({station[0]} {station[1]})')) as distance
     FROM amenities a
-    WHERE ST_Distance(Geography(ST_Transform(a.way ,4326)), ST_GeographyFromText('POINT ({station[0]} {station[1]})')) < '{distance}'
+    WHERE  ST_Distance(Geography(ST_Transform(a.way ,4326)), ST_GeographyFromText('POINT ({station[0]} {station[1]})')) < '{distance}'
         
     UNION
 
-    SELECT 0 as osm_id, 'rated_restaurant' as amenity, r.name, ST_AsText(r.geom), cast(r.lng as float) as lng, cast(r.lat as float) as lat, r.rating as rating
+    SELECT 0 as osm_id, 'rated_restaurant' as amenity, r.name, ST_AsText(r.geom), cast(r.lng as float) as lng, cast(r.lat as float) as lat, r.rating as rating,
+    ST_Distance(Geography(ST_Transform(r.geom ,4326)), ST_GeographyFromText('POINT ({station[0]} {station[1]})')) as distance
     FROM restaurants r
     WHERE
     ST_Distance(Geography(ST_Transform(r.geom ,4326)), ST_GeographyFromText('POINT ({station[0]} {station[1]})')) < '{distance}';
@@ -401,7 +404,8 @@ def parseRestaurants(queryResults):
                 "name": r["name"],
                 "rating": r["rating"],
                 "lat": r["lat"],
-                "lng": r["lng"]
+                "lng": r["lng"],
+                "distance": r["distance"]
             },
             "geometry": {
                 "type": "Point",
