@@ -1,6 +1,6 @@
 /// <reference types='leaflet-sidebar-v2' />
 import {Component, ElementRef, ViewChild} from '@angular/core';
-import {Feature, FeatureCollection} from 'geojson';
+import {Feature, FeatureCollection, Point} from 'geojson';
 import {MapComponent} from './map/map.component';
 import {DataService} from './services/data.service';
 import {Map, SidebarOptions, LatLngTuple} from 'leaflet';
@@ -69,7 +69,7 @@ export class AppComponent {
     setTimeout(() => {
       const selectedPoint = {
         location: [[9.0676, 48.8265]], // Ditzingen in Stuttgart
-        range: [10000]
+        range: [5000]
       };
       this.mapComponent.selectDropPoint(selectedPoint.location[0] as LatLngTuple, selectedPoint.range[0]);
     }, 3000);
@@ -146,7 +146,7 @@ export class AppComponent {
     // Convert km to m.
     this.mapComponent.setMaxRange(range * 1000);
     this.spinnerService.show();
-    const initLocations: FeatureCollection = {
+    const initLocations: FeatureCollection<Point> = {
       type: 'FeatureCollection',
       features: [{
         type: 'Feature',

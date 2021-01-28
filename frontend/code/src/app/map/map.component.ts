@@ -54,7 +54,7 @@ export class MapComponent {
   };
 
   public isochronesCache: FeatureCollection | undefined;
-  public stationsFeatureCollectionCache: FeatureCollection | undefined;
+  public stationsFeatureCollectionCache: FeatureCollection<Point> | undefined;
   public restaurantsOfStations: { [id: string]: Array<Feature>; } = {};
 
   public onMapReady(map: Map): void {
@@ -64,7 +64,7 @@ export class MapComponent {
     this.routingService.maxRange = 300000;
     this.routingService.dangerBattery = 0.2;
     this.routingService.amenityRange = 1000;
-    console.log('map.com: set param to rs.');
+    // console.log('map.com: set param to rs.');
     // some settings for a nice shadows, etc.
     const iconRetinaUrl = './assets/marker-icon-2x.png';
     const iconUrl = './assets/marker-icon.png';
@@ -87,7 +87,7 @@ export class MapComponent {
    *  #######################################################################
    */
 
-  public initDepDest(initLocations: FeatureCollection): void {
+  public initDepDest(initLocations: FeatureCollection<Point>): void {
     this.routingService.initDepDest(initLocations);
   }
 
@@ -115,25 +115,28 @@ export class MapComponent {
     // this.dataService.getStations([location], [range]).subscribe((stations: FeatureCollection) => {
     //   this.addStations(stations);
     // });
-    this.dataService.getStationsScore([location], [range], this.routingService.amenityRange).subscribe((stations: FeatureCollection) => {
-      this.addStations(stations);
+    this.dataService.getStationsScore([location], [range], this.routingService.amenityRange).subscribe((stations: FeatureCollection<Point>) => {
       this.stationsFeatureCollectionCache = stations;
-      console.log('Update restaurant cache');
+      this.addStations(stations);
+      // console.log('caching stations: original:', stations);
+      // console.log('caching stations: cache:', this.stationsFeatureCollectionCache);
+      // console.log('caching stations: cache as FeatureCollection:', this.stationsFeatureCollectionCache as FeatureCollection);
       this.updateRestaurantCache(stations);
     });
   }
 
-  public showRestaurantsOfStation(station: Feature): void {
+  public showRestaurantsOfStation(station: Feature<Point>): void {
     this.addRestaurants(station, this.routingService.amenityRange);
   }
 
   public returnToSeeStations(): void {
     this.removeAllRestaurants();
-    this.addStations(this.stationsFeatureCollectionCache as FeatureCollection);
+    this.addStations(this.stationsFeatureCollectionCache as FeatureCollection<Point>);
     this.addIsochrones(this.isochronesCache as FeatureCollection);
   }
 
-  public selectStation(station: Feature): void {
+  public selectStation(station: Feature<Point>): void {
+    // console.log('selectStation: add station to selection:', station);
     this.routingService.addNewStation(station);
     this.route();
   }
@@ -146,7 +149,7 @@ export class MapComponent {
 
   public addRoutePath(routeObs: Observable<FeatureCollection>): void {
     routeObs.subscribe((route: FeatureCollection) => {
-      console.log('addRoutePath: processed route', route);
+      // console.log('addRoutePath: processed route', route);
 
       const styles = (feature: any) => {
         // console.log(feature);
@@ -185,6 +188,7 @@ export class MapComponent {
       });
       this.removeAllStations();
       this.removeAllIsochrones();
+      this.removeAllRestaurants();
       this.updateRouteLayer(routeGeoJSON);
     });
   }
@@ -212,14 +216,14 @@ export class MapComponent {
 
   public updateIsochronesLayer(isochronesJSON: GeoJSON | undefined): void {
     if (isochronesJSON) {
-      console.log('update isochrones');
+      // console.log('update isochrones');
       this.map.removeLayer(this.isochronesLayerGroup);
       this.isochronesLayerGroup = new LayerGroup();
       isochronesJSON.addTo(this.isochronesLayerGroup);
       this.isochronesLayerGroup.addTo(this.map);
       this.map.fitBounds(isochronesJSON.getBounds(), {padding: [100, 100]});
     } else {
-      console.log('remove isochrones');
+      // console.log('remove isochrones');
       this.map.removeLayer(this.isochronesLayerGroup);
       this.isochronesLayerGroup = new LayerGroup();
     }
@@ -235,16 +239,33 @@ export class MapComponent {
    *  #######################################################################
    */
 
-  public getStationFeatureByID(stationID: number): Feature | undefined {
-    for (const station of (this.stationsFeatureCollectionCache as FeatureCollection).features) {
+  public getStationFeatureByID(stationID: number): Feature<Point> | undefined {
+    // console.log('looking for stations by id:', this.stationsFeatureCollectionCache);
+    for (const station of (this.stationsFeatureCollectionCache as FeatureCollection<Point>).features) {
       // console.log('check:', station.id as number);  
-      if (station.id as number == stationID) return station as Feature;
+      if (station.id as number == stationID) {
+        // console.log(station);
+        // console.log(station as Feature);
+        return station;
+      }
     }
+    // TODO: correctly handle exception instead of using `undefined`
+    console.log(`cannot find station ${stationID} in`, this.stationsFeatureCollectionCache);
     return undefined;
   }
 
-  public addStations(stations: FeatureCollection): void {
+  public addStations(stations: FeatureCollection<Point>): void {
     console.log('addStations:', stations);
+
+    // TODO: [ugly fix]: [lat lng] of station are being changed strangely in map.component
+    for (var station of stations.features){
+      let coordinates = station.geometry.coordinates;
+      coordinates = Array.from(coordinates, e => parseFloat(String(e)));
+      if (coordinates[0] > coordinates[1])
+        coordinates = coordinates.reverse();
+      station.geometry.coordinates = coordinates as LatLngTuple;
+    }
+
     if (!stations) {
       return;
     }
@@ -289,13 +310,13 @@ export class MapComponent {
 
   public updateStationsLayer(stationsGeoJSON: GeoJSON | undefined): void {
     if (stationsGeoJSON) {
-      console.log('add stations');
+      // console.log('add stations markers');
       this.map.removeLayer(this.stationsLayerGroup);
       this.stationsLayerGroup = new LayerGroup();
       stationsGeoJSON.addTo(this.stationsLayerGroup);
       this.stationsLayerGroup.addTo(this.map);
     } else {
-      console.log('remove all stations');
+      // console.log('remove all stations markers');
       this.map.removeLayer(this.stationsLayerGroup);
       this.stationsLayerGroup = new LayerGroup();
     }
@@ -309,7 +330,7 @@ export class MapComponent {
   public popupClicked(event: any): void {
     if (event.target.classList.contains('station-selected-click')) {
       const stationId = parseInt(event.target.id.substr(2), 10);
-      this.selectStation(this.getStationFeatureByID(stationId) as Feature);
+      this.selectStation(this.getStationFeatureByID(stationId) as Feature<Point>);
       console.log(`clicked select ${stationId}`);
       return;
     }
@@ -317,6 +338,13 @@ export class MapComponent {
       const stationId = parseInt(event.target.id.substr(2), 10);
       this.addRestaurantsByStationID(stationId);
       console.log(`clicked show restaurants of ${stationId}`);
+      return;
+    }
+    if (event.target.classList.contains('station-show-all-click')) {
+      // const stationId = parseInt(event.target.id.substr(2), 10);
+      // this.addRestaurantsByStationID(stationId);
+      this.returnToSeeStations();
+      console.log(`clicked and return to see all stations`);
       return;
     }
   }
@@ -328,27 +356,25 @@ export class MapComponent {
    */
 
   public addRestaurantsByStationID(stationID: number): void {
-    this.addRestaurants(this.getStationFeatureByID(stationID) as Feature, this.routingService.amenityRange);
+    this.addRestaurants(this.getStationFeatureByID(stationID) as Feature<Point>, this.routingService.amenityRange);
   }
 
-  public addRestaurants(station: Feature, amenityRange: number): void {
+  public addRestaurants(station: Feature<Point>, amenityRange: number): void {
     this.removeAllStations();
     this.removeAllIsochrones();
-
-    // TODO: (jonathan) add selected station again
 
     const onEachFeature = (feature: Feature<Geometry, any>, layer: Layer) => {
       layer.bindPopup(`${JSON.stringify(feature.properties, null, 2)}`);
       // TODO on click
     };
 
-    if (this.restaurantsOfStations && station.id && (station.geometry as Point).coordinates) {
-      console.log('add restaurants to:', station.id);
+    if (this.restaurantsOfStations && station.id && station.properties && station.geometry.coordinates) {
+      // console.log('add restaurants to:', station.id);
       const restaurants: FeatureCollection = {
         type: 'FeatureCollection',
         features: this.restaurantsOfStations[station.id as string] as Array<Feature>
       };
-      console.log(restaurants);
+      // console.log(restaurants);
       if (restaurants.features === undefined) {
         return;
       }
@@ -370,17 +396,34 @@ export class MapComponent {
           return new Marker(latlng, {icon});
         }
       });
-      this.updateRestaurantsLayer(restaurantsGeoJSON, (station.geometry as Point).coordinates.reverse() as LatLngTuple, amenityRange);
+
+      const popupHtml = `
+        <div>${station.properties.type}: ${station.properties.address}; ${station.id}<br/>
+            <button id="1-${station.id}" type="button" class="text-center w-100 mt-3 btn btn-secondary station-selected-click">
+                    Select station
+            </button>
+            <button id="2-${station.id}" type="button" class="text-center w-100 mt-2 btn btn-secondary station-show-all-click">
+                    Return to see all stations
+            </button>
+        </div>`;
+      const stationGeoJSON = new GeoJSON(station).bindPopup(popupHtml)
+
+      this.updateRestaurantsLayer(restaurantsGeoJSON, stationGeoJSON, station.geometry.coordinates.reverse() as LatLngTuple, amenityRange);
     }
   }
 
-  public updateRestaurantsLayer(restaurantsGeoJSON: GeoJSON | undefined, coordinate: LatLngTuple, amenityRange: number): void {
+  public updateRestaurantsLayer(restaurantsGeoJSON: GeoJSON | undefined, stationGeoJSON: GeoJSON, coordinate: LatLngTuple, amenityRange: number): void {
     if (restaurantsGeoJSON) {
       this.map.removeLayer(this.restaurantsLayerGroup);
       this.restaurantsLayerGroup = new LayerGroup();
       restaurantsGeoJSON.addTo(this.restaurantsLayerGroup);
+
+      // Add amenity circle based on amenity range
       const amenityCircle = new Circle(coordinate, {radius: amenityRange});
       amenityCircle.addTo(this.restaurantsLayerGroup);
+      // Add the center - station
+      stationGeoJSON.addTo(this.restaurantsLayerGroup);
+
       this.restaurantsLayerGroup.addTo(this.map);
       this.map.fitBounds(amenityCircle.getBounds(), {padding: [100, 100]});
     } else {
@@ -390,7 +433,7 @@ export class MapComponent {
   }
 
   public removeAllRestaurants(): void {
-    this.updateRestaurantsLayer(undefined, [0, 0], NaN);
+    this.updateRestaurantsLayer(undefined, new GeoJSON(), [0, 0], NaN);
   }
 
 
@@ -401,7 +444,7 @@ export class MapComponent {
    */
 
   public addWayPoints(wayPoints: FeatureCollection): void {
-    // console.log('add way points:', wayPoints);
+    console.log('add way points:', wayPoints);
     const onEachFeature = (feature: Feature<Geometry, any>, layer: Layer) => {
       layer.bindPopup(`${feature.properties.type}: ${feature.properties.name}`);
     };
@@ -470,12 +513,13 @@ export class MapComponent {
    */
 
   public cleanCache(): void {
+    console.log('cache clear.');
     this.isochronesCache = undefined;
     this.stationsFeatureCollectionCache = undefined;
     this.restaurantsOfStations = {};
   }
 
-  public updateRestaurantCache(stations: FeatureCollection): void {
+  public updateRestaurantCache(stations: FeatureCollection<Point>): void {
     this.restaurantsOfStations = {};
     // console.log(stations);
     for (const station of stations.features) {

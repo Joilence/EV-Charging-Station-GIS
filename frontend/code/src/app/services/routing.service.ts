@@ -19,21 +19,30 @@ export class RoutingService {
 
   // TODO: TS best practice of getter and setter
   // departure, selected stations, destinations
-  public wayPoints: FeatureCollection = {type: 'FeatureCollection', features: []};
+  public wayPoints: FeatureCollection<Point> = {type: 'FeatureCollection', features: []};
   public numOfSelectedStations = 0;
   public maxRange = 300000;
   public dangerBattery = 0.2;
   public amenityRange = 1000;
 
-  public addNewStation(station: Feature): void {
+  public addNewStation(station: Feature<Point>): void {
     if (station.properties) {
       station.properties.order = 1 + this.numOfSelectedStations++;
+
+      //TODO: [ugly fix]: [lat lng] of station are being changed strangely in map.component
+      let coordinates = Array.from(station.geometry.coordinates, e => parseFloat(String(e)));
+      if (coordinates[1] < coordinates[0])
+        coordinates = coordinates.reverse();
+      station.geometry.coordinates = coordinates;
+      // console.log('before add:', station.geometry.coordinates);
+
       this.wayPoints.features.push(station);
     }
+    // console.log('new station added:', this.wayPoints);
   }
 
-  public initDepDest(locations: FeatureCollection): void {
-    locations.features.forEach((feature: Feature) => {
+  public initDepDest(locations: FeatureCollection<Point>): void {
+    locations.features.forEach((feature: Feature<Point>) => {
       if (feature.properties && feature.properties.type === 'Departure') {
         feature.properties.order = 0;
       }
@@ -47,6 +56,7 @@ export class RoutingService {
   }
 
   public handleRoute(featureCollection: FeatureCollection, map: Map, maxRange: number, dangerBattery: number): FeatureCollection {
+    // console.log('handleRoute:', featureCollection);
     const wholeRoute = featureCollection.features[0] as Feature;
 
     if (wholeRoute.properties) {
@@ -106,21 +116,21 @@ export class RoutingService {
   }
 
   public getCurrentRoute(): Observable<FeatureCollection> {
-    const features = this.wayPoints.features.sort((a: Feature, b: Feature) => {
+    const features = this.wayPoints.features.sort((a: Feature<Point>, b: Feature<Point>) => {
       if (a.properties && b.properties) {
         return a.properties.order - b.properties.order;
       }
       return 1;
     });
     // console.log('getCurrentRoute(): features:', features);
-    const locations = Array.from(features, (e: Feature) => (e.geometry as Point).coordinates);
+    const locations = Array.from(features, (e: Feature<Point>) => e.geometry.coordinates);
     // console.log('extract locations for getCurrentRoute():', locations);
     const routeObs = this.dataService.getRoute('driving-car', locations);
     // console.log('route:', route);
     return routeObs.pipe(map((routes) => this.handleRoute(routes, this.map, this.maxRange, this.dangerBattery)));
   }
 
-  public getCurrentWayPoints(): FeatureCollection {
+  public getCurrentWayPoints(): FeatureCollection<Point> {
     return this.wayPoints;
   }
 
