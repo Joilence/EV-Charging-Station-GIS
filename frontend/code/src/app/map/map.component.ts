@@ -1,7 +1,7 @@
 /// <reference types='leaflet-sidebar-v2' />
 import {Component, EventEmitter, HostListener, Output} from '@angular/core';
 import {Feature, FeatureCollection, Geometry, Point} from 'geojson';
-import {Circle, GeoJSON, Icon, LatLng, latLng, LatLngTuple, Layer, LayerGroup, Map, Marker, TileLayer} from 'leaflet';
+import {Circle, GeoJSON, Icon, LatLng, latLng, LatLngTuple, Layer, LayerGroup, LeafletMouseEvent, Map, Marker, Popup, TileLayer} from 'leaflet';
 import 'leaflet.heat/dist/leaflet-heat';
 import {RoutingService} from '../services/routing.service';
 import {DataService} from '../services/data.service';
@@ -93,6 +93,10 @@ export class MapComponent {
 
   public route(): void {
     this.addRoutePath(this.routingService.getCurrentRoute());
+    this.map.on('click', (e: LeafletMouseEvent) => {        
+      var popLocation= e.latlng;
+      this.selectDropPoint([popLocation.lng, popLocation.lat] , 10000);
+    });
   }
 
   public setMaxRange(maxRange: number): void {
@@ -116,6 +120,7 @@ export class MapComponent {
     //   this.addStations(stations);
     // });
     this.dataService.getStationsScore([location], [range], this.routingService.amenityRange).subscribe((stations: FeatureCollection<Point>) => {
+      // TODO: Alert when no stations found.
       this.stationsFeatureCollectionCache = stations;
       this.addStations(stations);
       // console.log('caching stations: original:', stations);
@@ -503,6 +508,7 @@ export class MapComponent {
     this.removeAllStations();
     this.removeAllWayPoints();
     this.removeLayers();
+    this.map.off('click');
     this.map.removeLayer(this.routeLayerGroup);
   }
 
