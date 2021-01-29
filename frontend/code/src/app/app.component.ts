@@ -56,87 +56,6 @@ export class AppComponent {
     this.map = map;
   }
 
-  initTestProcess(): void {
-    /**
-     *  #######################################################################
-     *  ############################ Test Process #############################
-     *  #######################################################################
-     *
-     * Konstanz [47.6779, 9.1732], Stuttgart [48.7758, 9.1829], Dresden [51.0504, 13.7373]
-     */
-
-    // User Action 2: Select points along the path and show isochrones with stations
-    setTimeout(() => {
-      const selectedPoint = {
-        location: [[9.0676, 48.8265]], // Ditzingen in Stuttgart
-        range: [5000]
-      };
-      this.mapComponent.selectDropPoint(selectedPoint.location[0] as LatLngTuple, selectedPoint.range[0]);
-    }, 3000);
-
-    // // User Action 3: Select another point
-    // setTimeout(() => {
-    //   const selectedPoint = {
-    //     location: [[9.1829, 48.7758]], // Stuttgart
-    //     range: [10000]
-    //   };
-    //   this.mapComponent.selectDropPoint(selectedPoint.location[0] as LatLngTuple, selectedPoint.range[0]);
-    // }, 10000);
-
-    // // User Action 4: Select a station to see restaurants
-    // setTimeout(() => {
-    //   const selectedStation: Feature = {
-    //     type: 'Feature',
-    //     id: '113',
-    //     geometry: {
-    //       type: 'Point',
-    //       coordinates: [9.178289, 48.774372],
-    //     },
-    //     properties: {
-    //       address: 'Eichstraße 7',
-    //     }
-    //   };
-    //   this.mapComponent.showRestaurantsOfStation(selectedStation);
-    // }, 17000);
-
-    // // User Action 5: Return to see stations
-    // setTimeout(() => {
-    //   this.mapComponent.returnToSeeStations();
-    // }, 22000);
-
-    // // User Action 6: Selection another station to see restautants
-    // setTimeout(() => {
-    //   const selectedStation: Feature = {
-    //     type: 'Feature',
-    //     id: '122',
-    //     geometry: {
-    //       type: 'Point',
-    //       coordinates: [9.182627, 48.788657],
-    //     },
-    //     properties: {
-    //       address: 'Moskauer Str. 1',
-    //     }
-    //   };
-    //   this.mapComponent.showRestaurantsOfStation(selectedStation);
-    // }, 25000);
-
-    // // User Action 7: Select a station and reroute
-    // setTimeout(() => {
-    //   const selectedStation: Feature = {
-    //     type: 'Feature',
-    //     id: '122',
-    //     geometry: {
-    //       type: 'Point',
-    //       coordinates: [9.182627, 48.788657],
-    //     },
-    //     properties: {
-    //       address: 'Moskauer Str. 1',
-    //     }
-    //   };
-    //   this.mapComponent.selectStation(selectedStation);
-    // }, 30000);
-  }
-
   public calculateRoute(): void {
     this.closeSideBar();
     // Format: [long ,lat]
@@ -172,7 +91,6 @@ export class AppComponent {
     };
     this.mapComponent.initDepDest(initLocations);
     this.mapComponent.route();
-    this.initTestProcess();
     this.spinnerService.hide();
   }
 
