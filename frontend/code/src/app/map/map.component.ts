@@ -139,14 +139,21 @@ export class MapComponent {
     // });
     this.dataService.getStationsScore([location], [range], this.routingService.amenityRange).subscribe((stations: FeatureCollection<Point>) => {
       // TODO: Alert when no stations found.
-      this.spinnerService.hide();
-      console.log('hide spinner');
-      this.stationsFeatureCollectionCache = stations;
-      this.addStations(stations);
-      // console.log('caching stations: original:', stations);
-      // console.log('caching stations: cache:', this.stationsFeatureCollectionCache);
-      // console.log('caching stations: cache as FeatureCollection:', this.stationsFeatureCollectionCache as FeatureCollection);
-      this.updateRestaurantCache(stations);
+      if (stations.features.length === 0) {
+        new Popup()
+          .setLatLng([location[1], location[0]])
+          .setContent('<p>Sorry, there is no station T_T</p>')
+          .openOn(this.map);
+      } else {
+        this.spinnerService.hide();
+        console.log('hide spinner');
+        this.stationsFeatureCollectionCache = stations;
+        this.addStations(stations);
+        // console.log('caching stations: original:', stations);
+        // console.log('caching stations: cache:', this.stationsFeatureCollectionCache);
+        // console.log('caching stations: cache as FeatureCollection:', this.stationsFeatureCollectionCache as FeatureCollection);
+        this.updateRestaurantCache(stations);
+      }
     });
   }
 
