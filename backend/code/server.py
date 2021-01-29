@@ -49,6 +49,10 @@ SELECT AddGeometryColumn ('charging_stations','geom',4326,'POINT',2);
 UPDATE charging_stations SET geom = ST_SetSRID(ST_MakePoint(x::float, y::float), 4326);
 """
 
+indexStations="""
+    CREATE INDEX IF NOT EXISTS geom_stations ON charging_stations USING GIST ( geom )
+"""
+
 
 delRestaurants = """DROP TABLE IF EXISTS restaurants"""
 createRestaurants = """
@@ -69,9 +73,17 @@ SELECT AddGeometryColumn ('restaurants','geom',4326,'POINT',2);
 UPDATE restaurants SET geom = ST_SetSRID(ST_MakePoint(lng::float, lat::float), 4326);
 """
 
+indexRestaurants="""
+    CREATE INDEX IF NOT EXISTS geo_rest ON restaurants USING GIST( (geom::geography) )
+"""
+
+# createIndex="""
+# CREATE INDEX IF NOT EXISTS idx_poly_amenities ON  planet_osm_polygon USING gist (way)
+#        WHERE(amenity in ('bar','bbq','biergarten','cafe','fast_food','food_court','ice_cream','pub','restaurant'));
+# """
+
 createIndex="""
-CREATE INDEX IF NOT EXISTS idx_poly_amenities ON  planet_osm_polygon USING gist (way)
-       WHERE(amenity in ('bar','bbq','biergarten','cafe','fast_food','food_court','ice_cream','pub','restaurant'));
+    CREATE INDEX IF NOT EXISTS geo_amenities ON amenities USING GIST( (way::geography) );
 """
 
 with psycopg2.connect(host="database", port=5432, dbname="gis_db", user="gis_user", password="gis_pass") as conn:
@@ -81,14 +93,16 @@ with psycopg2.connect(host="database", port=5432, dbname="gis_db", user="gis_use
         with open('./data/charging_stations.csv', 'r') as f:
             cursor.copy_from(f, 'charging_stations', sep='|', )
         cursor.execute(geometryStations)
+        cursor.execute(indexStations)
 
         cursor.execute(delRestaurants)
         cursor.execute(createRestaurants)
         with open('./data/restaurant_score.csv', 'r') as f:
             cursor.copy_from(f, 'restaurants', sep='|', )
         cursor.execute(geometryRestaurants)
+        cursor.execute(indexRestaurants)
 
-        # cursor.execute(createIndex)
+        cursor.execute(createIndex)
 
         
 
@@ -264,7 +278,10 @@ def appendDistance(queryResult, routepoint):
                 # ,[r["lng"], r["lat"]]
             ]
         }
-        s["properties"]["distance"] = getRoute(params)["features"][0]["properties"]["summary"]["distance"]
+        try:
+            s["properties"]["distance"] = getRoute(params)["features"][0]["properties"]["summary"]["distance"]
+        except:
+            s["properties"]["distance"] = 10000
     return queryResult
 
 
@@ -282,7 +299,7 @@ def stations_score():
 
     for s in stations:
         closeRestaurants = queryRestaurants([s["properties"]["lng"], s["properties"]["lat"]], amenity_distance)
-        #delete this for loop to optimize (approximate with linear distance)
+        # delete this for loop to optimize (approximate with linear distance)
         # for r in closeRestaurants:
         #     params = {
         #         "coordinates":[
@@ -290,7 +307,10 @@ def stations_score():
         #             [r["properties"]["lng"], r["properties"]["lat"]]
         #         ]
         #     }
-        #     r["properties"]["distance"] = getRoute(params)["features"][0]["properties"]["summary"]["distance"]
+        #     try:
+        #         r["properties"]["distance"] = getRoute(params)["features"][0]["properties"]["summary"]["distance"]
+        #     except:
+        #         r["properties"]["distance"] = amenity_distance
 
         s["properties"]["closeRestaurants"] = closeRestaurants
 
@@ -359,15 +379,15 @@ def queryRestaurants(station, distance):
         '0' as rating,
         ST_Distance(Geography(ST_Transform(a.way ,4326)), ST_GeographyFromText('POINT ({station[0]} {station[1]})')) as distance
     FROM amenities a
-    WHERE  ST_Distance(Geography(ST_Transform(a.way ,4326)), ST_GeographyFromText('POINT ({station[0]} {station[1]})')) < '{distance}'
-        
+    WHERE ST_DWithin(a.way, ST_GeographyFromText('POINT ({station[0]} {station[1]})'), '{distance}')
+
     UNION
 
     SELECT 0 as osm_id, 'rated_restaurant' as amenity, r.name, ST_AsText(r.geom), cast(r.lng as float) as lng, cast(r.lat as float) as lat, r.rating as rating,
     ST_Distance(Geography(ST_Transform(r.geom ,4326)), ST_GeographyFromText('POINT ({station[0]} {station[1]})')) as distance
     FROM restaurants r
     WHERE
-    ST_Distance(Geography(ST_Transform(r.geom ,4326)), ST_GeographyFromText('POINT ({station[0]} {station[1]})')) < '{distance}';
+    ST_DWithin(r.geom, ST_GeographyFromText('POINT ({station[0]} {station[1]})'), '{distance}');
     """
 
 
