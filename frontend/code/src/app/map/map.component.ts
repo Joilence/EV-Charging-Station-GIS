@@ -93,7 +93,7 @@ export class MapComponent {
 
   public route(): void {
     this.addRoutePath(this.routingService.getCurrentRoute());
-    this.map.on('click', (e: LeafletMouseEvent) => {        
+    this.map.on('click', (e: LeafletMouseEvent) => {
       var popLocation= e.latlng;
       const wayPoints = this.routingService.getCurrentWayPoints().features;
       const lastWayPointLocation = wayPoints[wayPoints.length - 2].geometry.coordinates;
@@ -144,6 +144,7 @@ export class MapComponent {
           .setLatLng([location[1], location[0]])
           .setContent('<p>Sorry, there is no station T_T</p>')
           .openOn(this.map);
+        this.spinnerService.hide();
       } else {
         this.spinnerService.hide();
         console.log('hide spinner');
@@ -274,7 +275,7 @@ export class MapComponent {
   public getStationFeatureByID(stationID: number): Feature<Point> | undefined {
     // console.log('looking for stations by id:', this.stationsFeatureCollectionCache);
     for (const station of (this.stationsFeatureCollectionCache as FeatureCollection<Point>).features) {
-      // console.log('check:', station.id as number);  
+      // console.log('check:', station.id as number);
       if (station.id as number == stationID) {
         // console.log(station);
         // console.log(station as Feature);
