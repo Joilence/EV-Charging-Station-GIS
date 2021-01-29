@@ -112,6 +112,7 @@ export class MapComponent {
     this.removeAllIsochrones();
     this.removeAllRestaurants();
     this.cleanCache();
+    this.spinnerService.show('searching for stations...');
     this.dataService.getIsochrones([location], 'distance', [range]).subscribe((isochrones: FeatureCollection) => {
       this.isochronesCache = isochrones;
       this.addIsochrones(isochrones);
@@ -121,6 +122,8 @@ export class MapComponent {
     // });
     this.dataService.getStationsScore([location], [range], this.routingService.amenityRange).subscribe((stations: FeatureCollection<Point>) => {
       // TODO: Alert when no stations found.
+      this.spinnerService.hide();
+      console.log('hide spinner');
       this.stationsFeatureCollectionCache = stations;
       this.addStations(stations);
       // console.log('caching stations: original:', stations);
