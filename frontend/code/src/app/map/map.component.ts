@@ -172,7 +172,7 @@ export class MapComponent {
             const lastWayPointLocation = wayPoints[wayPoints.length - 2].geometry.coordinates;
             // const lastWayPointLatLng = new LatLng(lastWayPointLocation[1], lastWayPointLocation[0])
             this.dataService.getRoute('driving-car', [lastWayPointLocation, [popLocation.lng, popLocation.lat]]).subscribe((route: FeatureCollection) => {
-              console.log('route of click and departure:', route);
+              // console.log('route of click and departure:', route);
               // TODO: danger segments not accurate
               const distance = route.features[0].properties!.summary.distance * 0.9;
               if (distance >= this.routingService.maxRange ) {
