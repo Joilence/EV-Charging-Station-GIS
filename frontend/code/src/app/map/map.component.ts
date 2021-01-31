@@ -92,27 +92,8 @@ export class MapComponent {
   }
 
   public route(): void {
+    this.map.off('click');
     this.addRoutePath(this.routingService.getCurrentRoute());
-    this.map.on('click', (e: LeafletMouseEvent) => {
-      var popLocation= e.latlng;
-      const wayPoints = this.routingService.getCurrentWayPoints().features;
-      const lastWayPointLocation = wayPoints[wayPoints.length - 2].geometry.coordinates;
-      // const lastWayPointLatLng = new LatLng(lastWayPointLocation[1], lastWayPointLocation[0])
-      this.dataService.getRoute('driving-car', [lastWayPointLocation, [popLocation.lng, popLocation.lat]]).subscribe((route: FeatureCollection) => {
-        console.log('route of click and departure:', route);
-        // TODO: danger segments not accurate
-        const distance = route.features[0].properties!.summary.distance * 0.9;
-        if (distance >= this.routingService.maxRange ) {
-          new Popup()
-          .setLatLng(popLocation)
-          .setContent(`Sorry. Too far away, not reachable.<br /> distance from last point ${distance}`)
-          .openOn(this.map);
-        } else {
-          // TODO: decide max isochrones for searching stations
-          this.selectDropPoint([popLocation.lng, popLocation.lat] , Math.min(this.routingService.maxRange - distance, 20000));
-        }
-      })
-    });
   }
 
   public setMaxRange(maxRange: number): void {
@@ -138,7 +119,6 @@ export class MapComponent {
     //   this.addStations(stations);
     // });
     this.dataService.getStationsScore([location], [range], this.routingService.amenityRange).subscribe((stations: FeatureCollection<Point>) => {
-      // TODO: Alert when no stations found.
       if (stations.features.length === 0) {
         new Popup()
           .setLatLng([location[1], location[0]])
@@ -183,6 +163,31 @@ export class MapComponent {
   public addRoutePath(routeObs: Observable<FeatureCollection>): void {
     routeObs.subscribe((route: FeatureCollection) => {
       // console.log('addRoutePath: processed route', route);
+
+      for (const path of route.features) {
+        if (path.properties!.type === 'Danger Segment') {
+          this.map.on('click', (e: LeafletMouseEvent) => {
+            var popLocation= e.latlng;
+            const wayPoints = this.routingService.getCurrentWayPoints().features;
+            const lastWayPointLocation = wayPoints[wayPoints.length - 2].geometry.coordinates;
+            // const lastWayPointLatLng = new LatLng(lastWayPointLocation[1], lastWayPointLocation[0])
+            this.dataService.getRoute('driving-car', [lastWayPointLocation, [popLocation.lng, popLocation.lat]]).subscribe((route: FeatureCollection) => {
+              console.log('route of click and departure:', route);
+              // TODO: danger segments not accurate
+              const distance = route.features[0].properties!.summary.distance * 0.9;
+              if (distance >= this.routingService.maxRange ) {
+                new Popup()
+                .setLatLng(popLocation)
+                .setContent(`Sorry. Too far away, not reachable.<br /> distance from last point ${distance}`)
+                .openOn(this.map);
+              } else {
+                // TODO: decide max isochrones for searching stations
+                this.selectDropPoint([popLocation.lng, popLocation.lat] , Math.min(this.routingService.maxRange - distance, 20000));
+              }
+            })
+          });
+        }
+      }
 
       const styles = (feature: any) => {
         // console.log(feature);
