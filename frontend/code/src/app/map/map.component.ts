@@ -104,6 +104,10 @@ export class MapComponent {
     this.routingService.amenityRange = range;
   }
 
+  public setMaxStationSearchRange(range: number): void {
+    this.routingService.maxStationSearchRange = range;
+  }
+
   public selectDropPoint(location: LatLngTuple, range: number): void {
     // TODO: Check if the location is reachable
     this.removeAllStations();
@@ -182,7 +186,9 @@ export class MapComponent {
                 .openOn(this.map);
               } else {
                 // TODO: decide max isochrones for searching stations
-                this.selectDropPoint([popLocation.lng, popLocation.lat] , Math.min(this.routingService.maxRange - distance, 20000));
+                this.selectDropPoint([popLocation.lng, popLocation.lat] ,
+                                     Math.min(this.routingService.maxRange - distance,
+                                              this.routingService.maxStationSearchRange));
               }
             })
           });

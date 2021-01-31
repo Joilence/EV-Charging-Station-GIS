@@ -24,6 +24,7 @@ export class RoutingService {
   public maxRange = 300000;
   public dangerBattery = 0.2;
   public amenityRange = 1000;
+  public maxStationSearchRange = 20000;
 
   public addNewStation(station: Feature<Point>): void {
     if (station.properties) {
