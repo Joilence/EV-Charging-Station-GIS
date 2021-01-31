@@ -281,7 +281,7 @@ export class MapComponent {
     // console.log('looking for stations by id:', this.stationsFeatureCollectionCache);
     for (const station of (this.stationsFeatureCollectionCache as FeatureCollection<Point>).features) {
       // console.log('check:', station.id as number);
-      if (station.id as number == stationID) {
+      if (station.id as number === stationID) {
         // console.log(station);
         // console.log(station as Feature);
         return station;
