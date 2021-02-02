@@ -53,6 +53,11 @@
           <button class="text-center w-100 mt-3" mat-raised-button color="primary" (click)="calculateRoute()">
             Calculate
           </button>
+
+          <h3 class="text-center w-100 mt-5">Color legends</h3>
+          <div id="legend-stations" class="w-100 text-center pl-2"></div>
+          <div id="legend-restaurant" class="w-100 text-center pl-2"></div>
+          <div id="legend-heatmap" class="w-100 text-center pl-2"></div>
         </div>
       </div>
       <div class="leaflet-sidebar-pane" id="settings">
@@ -61,7 +66,6 @@
         </h1>
         <div class="leaflet-sidebar-custom-content">
           <h3 class="text-center w-100">Settings</h3>
-          <!-- TODO -->
         </div>
       </div>
       <div class="leaflet-sidebar-pane" id="layerTab">

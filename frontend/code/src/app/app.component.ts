@@ -1,17 +1,20 @@
 /// <reference types='leaflet-sidebar-v2' />
-import {Component, ElementRef, ViewChild} from '@angular/core';
-import {Feature, FeatureCollection, Point} from 'geojson';
+import {AfterViewInit, Component, ElementRef, ViewChild} from '@angular/core';
+import {FeatureCollection, Point} from 'geojson';
 import {MapComponent} from './map/map.component';
 import {DataService} from './services/data.service';
-import {Map, SidebarOptions, LatLngTuple} from 'leaflet';
+import {Map, SidebarOptions} from 'leaflet';
 import {SpinnerOverlayService} from './services/spinner-overlay.service';
+import * as d3 from 'd3';
+// @ts-ignore
+import {legend} from './map/d3-legend';
 
 @Component({
   selector: 'app-root',
   templateUrl: './app.component.html',
   styleUrls: ['./app.component.scss'],
 })
-export class AppComponent {
+export class AppComponent implements AfterViewInit {
 
   public map!: Map;
 
@@ -51,6 +54,29 @@ export class AppComponent {
   constructor(private dataService: DataService, private spinnerService: SpinnerOverlayService) {
   }
 
+  ngAfterViewInit(): void {
+    let node = legend({
+      color: d3.scaleSequential([0, 3], d3.interpolateRgb('blue', 'green')),
+      title: 'Station score'
+    });
+    // @ts-ignore
+    document.getElementById('legend-stations').append(node);
+
+    node = legend({
+      color: d3.scaleOrdinal(['0', '>0'], ['black', 'yellow']),
+      title: 'Restaurant score'
+    });
+    // @ts-ignore
+    document.getElementById('legend-stations').append(node);
+
+    node = legend({
+      color: d3.scaleLinear([0, 0.65, 1], ['blue', 'lime', 'red']),
+      title: 'Heatmap colors'
+    });
+    // @ts-ignore
+    document.getElementById('legend-heatmap').append(node);
+  }
+
   receiveMap(map: Map): void {
     // This will throw an ExpressionChangedAfterItHasBeenCheckedError error in dev mode. That's okay and not problematic.
     this.map = map;
@@ -87,7 +113,7 @@ export class AppComponent {
           type: 'Point',
           coordinates: target
         }
-      }, ]
+      }]
     };
     this.mapComponent.initDepDest(initLocations);
     this.mapComponent.route();

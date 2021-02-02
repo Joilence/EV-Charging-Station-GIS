@@ -1,7 +1,21 @@
 /// <reference types='leaflet-sidebar-v2' />
 import {Component, EventEmitter, HostListener, Output} from '@angular/core';
 import {Feature, FeatureCollection, Geometry, Point} from 'geojson';
-import {Circle, GeoJSON, Icon, LatLng, latLng, LatLngTuple, Layer, LayerGroup, LeafletMouseEvent, Map, Marker, Popup, TileLayer} from 'leaflet';
+import {
+  Circle,
+  GeoJSON,
+  Icon,
+  LatLng,
+  latLng,
+  LatLngTuple,
+  Layer,
+  LayerGroup,
+  LeafletMouseEvent,
+  Map,
+  Marker,
+  Popup,
+  TileLayer
+} from 'leaflet';
 import 'leaflet.heat/dist/leaflet-heat';
 import {RoutingService} from '../services/routing.service';
 import {DataService} from '../services/data.service';
@@ -11,6 +25,8 @@ import {SpinnerOverlayService} from '../services/spinner-overlay.service';
 import 'd3';
 import * as d3 from 'd3';
 import '../../../node_modules/leaflet-fa-markers/L.Icon.FontAwesome';
+// @ts-ignore
+import {legend} from './d3-legend';
 
 declare var L: any;
 
@@ -94,24 +110,27 @@ export class MapComponent {
   public route(): void {
     this.addRoutePath(this.routingService.getCurrentRoute());
     this.map.on('click', (e: LeafletMouseEvent) => {
-      var popLocation= e.latlng;
+      const popLocation = e.latlng;
       const wayPoints = this.routingService.getCurrentWayPoints().features;
       const lastWayPointLocation = wayPoints[wayPoints.length - 2].geometry.coordinates;
       // const lastWayPointLatLng = new LatLng(lastWayPointLocation[1], lastWayPointLocation[0])
-      this.dataService.getRoute('driving-car', [lastWayPointLocation, [popLocation.lng, popLocation.lat]]).subscribe((route: FeatureCollection) => {
-        console.log('route of click and departure:', route);
-        // TODO: danger segments not accurate
-        const distance = route.features[0].properties!.summary.distance * 0.9;
-        if (distance >= this.routingService.maxRange ) {
-          new Popup()
-          .setLatLng(popLocation)
-          .setContent(`Sorry. Too far away, not reachable.<br /> distance from last point ${distance}`)
-          .openOn(this.map);
-        } else {
-          // TODO: decide max isochrones for searching stations
-          this.selectDropPoint([popLocation.lng, popLocation.lat] , Math.min(this.routingService.maxRange - distance, 20000));
-        }
-      })
+      this.dataService.getRoute('driving-car',
+        [lastWayPointLocation, [popLocation.lng, popLocation.lat]])
+        .subscribe((route: FeatureCollection) => {
+          console.log('route of click and departure:', route);
+          // TODO: danger segments not accurate
+          // tslint:disable-next-line:no-non-null-assertion
+          const distance = route.features[0].properties!.summary.distance * 0.9;
+          if (distance >= this.routingService.maxRange) {
+            new Popup()
+              .setLatLng(popLocation)
+              .setContent(`Sorry. Too far away, not reachable.<br /> distance from last point ${distance}`)
+              .openOn(this.map);
+          } else {
+            // TODO: decide max isochrones for searching stations
+            this.selectDropPoint([popLocation.lng, popLocation.lat], Math.min(this.routingService.maxRange - distance, 20000));
+          }
+        });
     });
   }
 
@@ -137,25 +156,26 @@ export class MapComponent {
     // this.dataService.getStations([location], [range]).subscribe((stations: FeatureCollection) => {
     //   this.addStations(stations);
     // });
-    this.dataService.getStationsScore([location], [range], this.routingService.amenityRange).subscribe((stations: FeatureCollection<Point>) => {
-      // TODO: Alert when no stations found.
-      if (stations.features.length === 0) {
-        new Popup()
-          .setLatLng([location[1], location[0]])
-          .setContent('<p>Sorry, there is no station T_T</p>')
-          .openOn(this.map);
-        this.spinnerService.hide();
-      } else {
-        this.spinnerService.hide();
-        console.log('hide spinner');
-        this.stationsFeatureCollectionCache = stations;
-        this.addStations(stations);
-        // console.log('caching stations: original:', stations);
-        // console.log('caching stations: cache:', this.stationsFeatureCollectionCache);
-        // console.log('caching stations: cache as FeatureCollection:', this.stationsFeatureCollectionCache as FeatureCollection);
-        this.updateRestaurantCache(stations);
-      }
-    });
+    this.dataService.getStationsScore([location], [range], this.routingService.amenityRange)
+      .subscribe((stations: FeatureCollection<Point>) => {
+        // TODO: Alert when no stations found.
+        if (stations.features.length === 0) {
+          new Popup()
+            .setLatLng([location[1], location[0]])
+            .setContent('<p>Sorry, there is no station T_T</p>')
+            .openOn(this.map);
+          this.spinnerService.hide();
+        } else {
+          this.spinnerService.hide();
+          console.log('hide spinner');
+          this.stationsFeatureCollectionCache = stations;
+          this.addStations(stations);
+          // console.log('caching stations: original:', stations);
+          // console.log('caching stations: cache:', this.stationsFeatureCollectionCache);
+          // console.log('caching stations: cache as FeatureCollection:', this.stationsFeatureCollectionCache as FeatureCollection);
+          this.updateRestaurantCache(stations);
+        }
+      });
   }
 
   public showRestaurantsOfStation(station: Feature<Point>): void {
@@ -276,7 +296,7 @@ export class MapComponent {
     // console.log('looking for stations by id:', this.stationsFeatureCollectionCache);
     for (const station of (this.stationsFeatureCollectionCache as FeatureCollection<Point>).features) {
       // console.log('check:', station.id as number);
-      if (station.id as number == stationID) {
+      if (station.id as number === stationID) {
         // console.log(station);
         // console.log(station as Feature);
         return station;
@@ -291,11 +311,12 @@ export class MapComponent {
     console.log('addStations:', stations);
 
     // TODO: [ugly fix]: [lat lng] of station are being changed strangely in map.component
-    for (var station of stations.features){
+    for (const station of stations.features) {
       let coordinates = station.geometry.coordinates;
       coordinates = Array.from(coordinates, e => parseFloat(String(e)));
-      if (coordinates[0] > coordinates[1])
+      if (coordinates[0] > coordinates[1]) {
         coordinates = coordinates.reverse();
+      }
       station.geometry.coordinates = coordinates as LatLngTuple;
     }
 
@@ -314,13 +335,24 @@ export class MapComponent {
         </div>`;
       layer.bindPopup(popupHtml);
     };
-    // Use a linear scaling.
-    const scale = d3.scaleLinear().domain([0, d3.max(stations.features, (station) => {
+
+    const maxValue = d3.max(stations.features, (station) => {
       if (!station.properties) {
         return 0;
       }
       return station.properties.score;
-    })]);
+    });
+    // Use a linear scaling.
+    const scale = d3.scaleLinear().domain([0, maxValue]);
+
+    const node = legend({
+      color: d3.scaleSequential([0, maxValue], d3.interpolateRgb('blue', 'green')),
+      title: 'Station score'
+    });
+    // @ts-ignore
+    document.getElementById('legend-stations').innerHTML = '';
+    // @ts-ignore
+    document.getElementById('legend-stations').append(node);
 
     const colorScaleLog = d3.scaleSequential((d) => d3.interpolateRgb('blue', 'green')(scale(d)));
 
@@ -439,13 +471,14 @@ export class MapComponent {
                     Return to see all stations
             </button>
         </div>`;
-      const stationGeoJSON = new GeoJSON(station).bindPopup(popupHtml)
+      const stationGeoJSON = new GeoJSON(station).bindPopup(popupHtml);
 
       this.updateRestaurantsLayer(restaurantsGeoJSON, stationGeoJSON, station.geometry.coordinates.reverse() as LatLngTuple, amenityRange);
     }
   }
 
-  public updateRestaurantsLayer(restaurantsGeoJSON: GeoJSON | undefined, stationGeoJSON: GeoJSON, coordinate: LatLngTuple, amenityRange: number): void {
+  public updateRestaurantsLayer(restaurantsGeoJSON: GeoJSON | undefined, stationGeoJSON: GeoJSON, coordinate: LatLngTuple,
+                                amenityRange: number): void {
     if (restaurantsGeoJSON) {
       this.map.removeLayer(this.restaurantsLayerGroup);
       this.restaurantsLayerGroup = new LayerGroup();
