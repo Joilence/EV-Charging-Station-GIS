@@ -73,6 +73,8 @@ export class MapComponent {
   public stationsFeatureCollectionCache: FeatureCollection<Point> | undefined;
   public restaurantsOfStations: { [id: string]: Array<Feature>; } = {};
 
+  private isochroneMaxRange = 20000;
+
   public onMapReady(map: Map): void {
     this.map = map;
     this.map$.emit(map);
@@ -112,7 +114,8 @@ export class MapComponent {
   }
 
   public updateSettings(isochroneMaxRange: number, amenityRange: number): void {
-    this.routingService.updateSettings(isochroneMaxRange, amenityRange);
+    this.routingService.updateSettings(amenityRange);
+    this.isochroneMaxRange = isochroneMaxRange;
   }
 
   public route(): void {
@@ -135,8 +138,8 @@ export class MapComponent {
               .setContent(`Sorry. Too far away, not reachable.<br /> distance from last point ${distance}`)
               .openOn(this.map);
           } else {
-            // TODO: decide max isochrones for searching stations
-            this.selectDropPoint([popLocation.lng, popLocation.lat], Math.min(this.routingService.maxRange - distance, 20000));
+            this.selectDropPoint([popLocation.lng, popLocation.lat],
+              Math.min(this.routingService.maxRange - distance, this.isochroneMaxRange));
           }
         });
     });
@@ -144,6 +147,10 @@ export class MapComponent {
 
   public setMaxRange(maxRange: number): void {
     this.routingService.maxRange = maxRange;
+  }
+
+  public setStartRange(range: number): void {
+    this.routingService.startRange = range;
   }
 
   public setAmenityRange(range: number): void {
@@ -335,7 +342,10 @@ export class MapComponent {
       const popupHtml = `
         <div>${feature.properties.type}: ${feature.properties.address}; ${feature.id}<br/>
             <button id="1-${feature.id}" type="button" class="text-center w-100 mt-3 btn btn-secondary station-selected-click">
-                    Select station
+                    Select station (full charge)
+            </button>
+            <button id="3-${feature.id}" type="button" class="text-center w-100 mt-2 btn btn-secondary station-selected-click">
+                    Select station (fast charge)
             </button>
             <button id="2-${feature.id}" type="button" class="text-center w-100 mt-2 btn btn-secondary station-show-restaurant-click">
                     Show restaurants

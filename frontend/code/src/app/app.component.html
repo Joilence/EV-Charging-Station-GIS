@@ -48,11 +48,15 @@
           <br/>
           <mat-form-field class="w-50 pr-1">
             <mat-label>Car Range (km)</mat-label>
-            <input type="number" value="200" #inputRange matInput>
+            <input type="number" value="300" #inputRange matInput>
           </mat-form-field>
           <mat-form-field class="w-50 pl-1">
+            <mat-label>Start range vehicle (km)</mat-label>
+            <input type="number" value="300" #inputStartRange matInput>
+          </mat-form-field>
+          <mat-form-field class="w-50 pr-1">
             <mat-label>Departure time</mat-label>
-            <input type="time" #inputTime matInput>
+            <input type="time" value="200" #inputTime matInput>
           </mat-form-field>
           <button class="text-center w-100 mt-3" mat-raised-button color="primary" (click)="calculateRoute()">
             Calculate
@@ -72,7 +76,7 @@
           <h3 class="text-center w-100">Settings</h3>
           <mat-form-field class="w-50 pl-1">
             <mat-label>Isochrone Max Range (in meter)</mat-label>
-            <input type="number" (change)="settingsChanged()" value="300000" #inputMaxRange matInput>
+            <input type="number" (change)="settingsChanged()" value="20000" #inputMaxRange matInput>
           </mat-form-field>
           <mat-form-field class="w-50 pl-1">
             <mat-label>Amenity Distance (in meter)</mat-label>

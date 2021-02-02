@@ -22,6 +22,7 @@ export class RoutingService {
   public wayPoints: FeatureCollection<Point> = {type: 'FeatureCollection', features: []};
   public numOfSelectedStations = 0;
   public maxRange = 300000;
+  public startRange = 300000;
   public dangerBattery = 0.2;
   public amenityRange = 1000;
   public departureTime = new Date().getTime();
@@ -61,9 +62,8 @@ export class RoutingService {
     this.departureTime = depTime;
   }
 
-  public updateSettings(isochroneMaxRange: number, amenityRange: number): void {
+  public updateSettings(amenityRange: number): void {
     this.amenityRange = amenityRange;
-    this.maxRange = isochroneMaxRange;
   }
 
   public handleRoute(featureCollection: FeatureCollection, map: Map, maxRange: number, dangerBattery: number): FeatureCollection {

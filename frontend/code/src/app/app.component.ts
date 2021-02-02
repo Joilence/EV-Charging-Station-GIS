@@ -40,6 +40,8 @@ export class AppComponent implements AfterViewInit {
   inputTargetLong!: ElementRef;
   @ViewChild('inputRange', {static: true})
   inputRange!: ElementRef;
+  @ViewChild('inputStartRange', {static: true})
+  inputStartRange!: ElementRef;
   @ViewChild('inputTime', {static: true})
   inputTime!: ElementRef;
   @ViewChild('inputMaxRange', {static: true})
@@ -103,6 +105,7 @@ export class AppComponent implements AfterViewInit {
     const start = [parseFloat(this.inputStartLong.nativeElement.value), parseFloat(this.inputStartLat.nativeElement.value)];
     const target = [parseFloat(this.inputTargetLong.nativeElement.value), parseFloat(this.inputTargetLat.nativeElement.value)];
     const range = parseFloat(this.inputRange.nativeElement.value);
+    const startRange = parseFloat(this.inputStartRange.nativeElement.value);
     // Extract departure time.
     const timeSplit = String(this.inputTime.nativeElement.value);
     const splitted = timeSplit.split(':');
@@ -110,6 +113,7 @@ export class AppComponent implements AfterViewInit {
     departureDate.setHours(parseInt(splitted[0], 10), parseInt(splitted[1], 10), 0);
     // Convert km to m.
     this.mapComponent.setMaxRange(range * 1000);
+    this.mapComponent.setStartRange(startRange * 1000);
     this.spinnerService.show();
     const initLocations: FeatureCollection<Point> = {
       type: 'FeatureCollection',
