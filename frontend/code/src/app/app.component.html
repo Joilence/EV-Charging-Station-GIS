@@ -74,13 +74,17 @@
         </h1>
         <div class="leaflet-sidebar-custom-content">
           <h3 class="text-center w-100">Settings</h3>
-          <mat-form-field class="w-50 pl-1">
+          <mat-form-field class="w-50 pr-1">
             <mat-label>Isochrone Max Range (in meter)</mat-label>
             <input type="number" (change)="settingsChanged()" value="20000" #inputMaxRange matInput>
           </mat-form-field>
           <mat-form-field class="w-50 pl-1">
             <mat-label>Amenity Distance (in meter)</mat-label>
             <input type="number" (change)="settingsChanged()" value="1000" #inputAmenityRange matInput>
+          </mat-form-field>
+          <mat-form-field class="w-50 pr-1">
+            <mat-label>Amount for fast charge (value between 0 and 1)</mat-label>
+            <input type="number" step="0.1" (change)="settingsChanged()" value="0.8" #inputFastChargeAmount matInput>
           </mat-form-field>
         </div>
       </div>

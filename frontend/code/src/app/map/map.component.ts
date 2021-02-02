@@ -113,9 +113,10 @@ export class MapComponent {
     this.routingService.setDepartureTime(time);
   }
 
-  public updateSettings(isochroneMaxRange: number, amenityRange: number): void {
+  public updateSettings(isochroneMaxRange: number, amenityRange: number, fastChargeAmount: number): void {
     this.routingService.updateSettings(amenityRange);
     this.isochroneMaxRange = isochroneMaxRange;
+    this.routingService.fastChargeAmount = fastChargeAmount;
   }
 
   public route(): void {
@@ -151,6 +152,10 @@ export class MapComponent {
 
   public setStartRange(range: number): void {
     this.routingService.startRange = range;
+  }
+
+  public setFastChargeAmount(amount: number): void {
+    this.routingService.fastChargeAmount = amount;
   }
 
   public selectDropPoint(location: LatLngTuple, range: number): void {
@@ -307,7 +312,8 @@ export class MapComponent {
     // console.log('looking for stations by id:', this.stationsFeatureCollectionCache);
     for (const station of (this.stationsFeatureCollectionCache as FeatureCollection<Point>).features) {
       // console.log('check:', station.id as number);
-      if (station.id as number === stationID) {
+      // tslint:disable-next-line:triple-equals
+      if (station.id as number == stationID) {
         // console.log(station);
         // console.log(station as Feature);
         return station;
@@ -408,7 +414,23 @@ export class MapComponent {
   @HostListener('document:click', ['$event'])
   public popupClicked(event: any): void {
     if (event.target.classList.contains('station-selected-click')) {
+      const clickId = parseInt(event.target.id.substr(0, 1), 10);
       const stationId = parseInt(event.target.id.substr(2), 10);
+      console.log(stationId);
+      // Full charge.
+      if (clickId === 1) {
+        if (this.routingService.fastCharge) {
+          this.routingService.maxRange = this.routingService.maxRange / this.routingService.fastChargeAmount;
+          this.routingService.fastCharge = false;
+        }
+      }
+      // Fast charge.
+      if (clickId === 3) {
+        if (!this.routingService.fastCharge) {
+          this.routingService.maxRange = this.routingService.maxRange * this.routingService.fastChargeAmount;
+          this.routingService.fastCharge = true;
+        }
+      }
       this.selectStation(this.getStationFeatureByID(stationId) as Feature<Point>);
       console.log(`clicked select ${stationId}`);
       return;

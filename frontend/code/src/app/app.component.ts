@@ -8,6 +8,7 @@ import {SpinnerOverlayService} from './services/spinner-overlay.service';
 import * as d3 from 'd3';
 // @ts-ignore
 import {legend} from './map/d3-legend';
+import {MatSnackBar} from '@angular/material/snack-bar';
 
 @Component({
   selector: 'app-root',
@@ -48,6 +49,8 @@ export class AppComponent implements AfterViewInit {
   inputMaxRange!: ElementRef;
   @ViewChild('inputAmenityRange', {static: true})
   inputAmenityRange!: ElementRef;
+  @ViewChild('inputFastChargeAmount', {static: true})
+  inputFastChargeAmount!: ElementRef;
   @ViewChild('sidebar', {static: true})
   sideBar!: ElementRef;
   @ViewChild('homeActive', {static: true})
@@ -59,7 +62,7 @@ export class AppComponent implements AfterViewInit {
    * Services or other dependencies are often imported via dependency injection.
    * See https://angular.io/guide/dependency-injection for more details.
    */
-  constructor(private dataService: DataService, private spinnerService: SpinnerOverlayService) {
+  constructor(private dataService: DataService, private spinnerService: SpinnerOverlayService, private snackBar: MatSnackBar) {
   }
 
   ngAfterViewInit(): void {
@@ -83,14 +86,36 @@ export class AppComponent implements AfterViewInit {
     });
     // @ts-ignore
     document.getElementById('legend-heatmap').append(node);
-
     this.inputTime.nativeElement.value = new Date().getHours() + ':' + new Date().getMinutes();
   }
 
   settingsChanged(): void {
+    let fastChargeAmount = parseFloat(this.inputFastChargeAmount.nativeElement.value);
+    if (fastChargeAmount > 1 || fastChargeAmount <= 0) {
+      // Use default value.
+      fastChargeAmount = 0.8;
+      this.inputFastChargeAmount.nativeElement.value = fastChargeAmount;
+      this.snackBar.open('Invalid value entered for fast charge amount. Resetting to default.', undefined,
+        {duration: 2000});
+    }
+    let maxRange = parseInt(this.inputMaxRange.nativeElement.value, 10);
+    let amenityRange = parseInt(this.inputAmenityRange.nativeElement.value, 10);
+    if (maxRange <= 0) {
+      this.snackBar.open('Invalid value entered for max range. Resetting to default.', undefined,
+        {duration: 2000});
+      maxRange = 20000;
+      this.inputMaxRange.nativeElement.value = maxRange;
+    }
+    if (amenityRange <= 0) {
+      this.snackBar.open('Invalid value entered for max range. Resetting to default.', undefined,
+        {duration: 2000});
+      amenityRange = 1000;
+      this.inputAmenityRange.nativeElement.value = amenityRange;
+    }
     this.mapComponent.updateSettings(
-      parseInt(this.inputMaxRange.nativeElement.value, 10),
-      parseInt(this.inputAmenityRange.nativeElement.value, 10)
+      maxRange,
+      amenityRange,
+      fastChargeAmount
     );
   }
 
