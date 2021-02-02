@@ -153,10 +153,6 @@ export class MapComponent {
     this.routingService.startRange = range;
   }
 
-  public setAmenityRange(range: number): void {
-    this.routingService.amenityRange = range;
-  }
-
   public selectDropPoint(location: LatLngTuple, range: number): void {
     // TODO: Check if the location is reachable
     this.removeAllStations();
