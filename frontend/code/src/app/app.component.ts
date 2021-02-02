@@ -18,6 +18,7 @@ export class AppComponent {
   public maxZoomHeat = 11;
   public radiusHeat = 10;
 
+
   public sidebarOptions: SidebarOptions = {
     position: 'left',
     autopan: false,
@@ -37,6 +38,8 @@ export class AppComponent {
   inputTargetLong!: ElementRef;
   @ViewChild('inputRange', {static: true})
   inputRange!: ElementRef;
+  // @ViewChild('featuredRestaurants', {static: true})
+  // featuredRestaurants!: ElementRef;
   @ViewChild('sidebar', {static: true})
   sideBar!: ElementRef;
   @ViewChild('homeActive', {static: true})
@@ -49,7 +52,13 @@ export class AppComponent {
    * See https://angular.io/guide/dependency-injection for more details.
    */
   constructor(private dataService: DataService, private spinnerService: SpinnerOverlayService) {
+    this.featuredRestaurants = false
   }
+
+  featuredRestaurants: boolean;
+  // onChange(UpdatedValue : boolean) : void{
+  //   this.featuredRestaurants = UpdatedValue;
+  // }
 
   receiveMap(map: Map): void {
     // This will throw an ExpressionChangedAfterItHasBeenCheckedError error in dev mode. That's okay and not problematic.
