@@ -8,7 +8,6 @@ import {SpinnerOverlayService} from './services/spinner-overlay.service';
 import * as d3 from 'd3';
 // @ts-ignore
 import {legend} from './map/d3-legend';
-import {split} from 'ts-node';
 
 @Component({
   selector: 'app-root',
@@ -43,6 +42,10 @@ export class AppComponent implements AfterViewInit {
   inputRange!: ElementRef;
   @ViewChild('inputTime', {static: true})
   inputTime!: ElementRef;
+  @ViewChild('inputMaxRange', {static: true})
+  inputMaxRange!: ElementRef;
+  @ViewChild('inputAmenityRange', {static: true})
+  inputAmenityRange!: ElementRef;
   @ViewChild('sidebar', {static: true})
   sideBar!: ElementRef;
   @ViewChild('homeActive', {static: true})
@@ -80,6 +83,13 @@ export class AppComponent implements AfterViewInit {
     document.getElementById('legend-heatmap').append(node);
 
     this.inputTime.nativeElement.value = new Date().getHours() + ':' + new Date().getMinutes();
+  }
+
+  settingsChanged(): void {
+    this.mapComponent.updateSettings(
+      parseInt(this.inputMaxRange.nativeElement.value, 10),
+      parseInt(this.inputAmenityRange.nativeElement.value, 10)
+    );
   }
 
   receiveMap(map: Map): void {

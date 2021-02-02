@@ -111,6 +111,10 @@ export class MapComponent {
     this.routingService.setDepartureTime(time);
   }
 
+  public updateSettings(isochroneMaxRange: number, amenityRange: number): void {
+    this.routingService.updateSettings(isochroneMaxRange, amenityRange);
+  }
+
   public route(): void {
     this.addRoutePath(this.routingService.getCurrentRoute());
     this.map.on('click', (e: LeafletMouseEvent) => {

@@ -61,6 +61,11 @@ export class RoutingService {
     this.departureTime = depTime;
   }
 
+  public updateSettings(isochroneMaxRange: number, amenityRange: number): void {
+    this.amenityRange = amenityRange;
+    this.maxRange = isochroneMaxRange;
+  }
+
   public handleRoute(featureCollection: FeatureCollection, map: Map, maxRange: number, dangerBattery: number): FeatureCollection {
     // console.log('handleRoute:', featureCollection);
     const wholeRoute = featureCollection.features[0] as Feature;
