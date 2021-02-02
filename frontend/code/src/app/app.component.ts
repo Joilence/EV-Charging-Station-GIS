@@ -8,6 +8,7 @@ import {SpinnerOverlayService} from './services/spinner-overlay.service';
 import * as d3 from 'd3';
 // @ts-ignore
 import {legend} from './map/d3-legend';
+import {split} from 'ts-node';
 
 @Component({
   selector: 'app-root',
@@ -40,6 +41,8 @@ export class AppComponent implements AfterViewInit {
   inputTargetLong!: ElementRef;
   @ViewChild('inputRange', {static: true})
   inputRange!: ElementRef;
+  @ViewChild('inputTime', {static: true})
+  inputTime!: ElementRef;
   @ViewChild('sidebar', {static: true})
   sideBar!: ElementRef;
   @ViewChild('homeActive', {static: true})
@@ -75,6 +78,8 @@ export class AppComponent implements AfterViewInit {
     });
     // @ts-ignore
     document.getElementById('legend-heatmap').append(node);
+
+    this.inputTime.nativeElement.value = new Date().getHours() + ':' + new Date().getMinutes();
   }
 
   receiveMap(map: Map): void {
@@ -88,6 +93,11 @@ export class AppComponent implements AfterViewInit {
     const start = [parseFloat(this.inputStartLong.nativeElement.value), parseFloat(this.inputStartLat.nativeElement.value)];
     const target = [parseFloat(this.inputTargetLong.nativeElement.value), parseFloat(this.inputTargetLat.nativeElement.value)];
     const range = parseFloat(this.inputRange.nativeElement.value);
+    // Extract departure time.
+    const timeSplit = String(this.inputTime.nativeElement.value);
+    const splitted = timeSplit.split(':');
+    const departureDate = new Date();
+    departureDate.setHours(parseInt(splitted[0], 10), parseInt(splitted[1], 10), 0);
     // Convert km to m.
     this.mapComponent.setMaxRange(range * 1000);
     this.spinnerService.show();
@@ -116,6 +126,7 @@ export class AppComponent implements AfterViewInit {
       }]
     };
     this.mapComponent.initDepDest(initLocations);
+    this.mapComponent.initDepTime(departureDate.getTime());
     this.mapComponent.route();
     this.spinnerService.hide();
   }

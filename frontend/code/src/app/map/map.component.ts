@@ -107,6 +107,10 @@ export class MapComponent {
     this.routingService.initDepDest(initLocations);
   }
 
+  public initDepTime(time: number): void {
+    this.routingService.setDepartureTime(time);
+  }
+
   public route(): void {
     this.addRoutePath(this.routingService.getCurrentRoute());
     this.map.on('click', (e: LeafletMouseEvent) => {
