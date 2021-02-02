@@ -22,6 +22,7 @@ export class AppComponent implements AfterViewInit {
   public maxZoomHeat = 11;
   public radiusHeat = 10;
 
+
   public sidebarOptions: SidebarOptions = {
     position: 'left',
     autopan: false,
@@ -63,7 +64,10 @@ export class AppComponent implements AfterViewInit {
    * See https://angular.io/guide/dependency-injection for more details.
    */
   constructor(private dataService: DataService, private spinnerService: SpinnerOverlayService, private snackBar: MatSnackBar) {
+    this.featuredRestaurants = false
+    
   }
+  featuredRestaurants: boolean;
 
   ngAfterViewInit(): void {
     let node = legend({
@@ -87,6 +91,7 @@ export class AppComponent implements AfterViewInit {
     // @ts-ignore
     document.getElementById('legend-heatmap').append(node);
     this.inputTime.nativeElement.value = new Date().getHours() + ':' + new Date().getMinutes();
+
   }
 
   settingsChanged(): void {

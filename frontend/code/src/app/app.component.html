@@ -1,5 +1,5 @@
 <div id="app">
-  <app-map (map$)="receiveMap($event)"></app-map>
+  <app-map (map$)="receiveMap($event)" [showFeat]="featuredRestaurants"></app-map>
   <leaflet-sidebar-control [map]="map" [options]="sidebarOptions"></leaflet-sidebar-control>
   <div id="sidebar" #sidebar class="leaflet-sidebar collapsed">
     <!-- Nav tabs -->
@@ -58,6 +58,7 @@
             <mat-label>Departure time</mat-label>
             <input type="time" value="200" #inputTime matInput>
           </mat-form-field>
+          <mat-checkbox [(ngModel)]="featuredRestaurants" >Include Featured Restaurants</mat-checkbox>
           <button class="text-center w-100 mt-3" mat-raised-button color="primary" (click)="calculateRoute()">
             Calculate
           </button>
