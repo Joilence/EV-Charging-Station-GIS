@@ -1,7 +1,21 @@
 /// <reference types='leaflet-sidebar-v2' />
 import {Component, EventEmitter, HostListener, Output} from '@angular/core';
 import {Feature, FeatureCollection, Geometry, Point} from 'geojson';
-import {Circle, GeoJSON, Icon, LatLng, latLng, LatLngTuple, Layer, LayerGroup, LeafletMouseEvent, Map, Marker, Popup, TileLayer} from 'leaflet';
+import {
+  Circle,
+  GeoJSON,
+  Icon,
+  LatLng,
+  latLng,
+  LatLngTuple,
+  Layer,
+  LayerGroup,
+  LeafletMouseEvent,
+  Map,
+  Marker,
+  Popup,
+  TileLayer
+} from 'leaflet';
 import 'leaflet.heat/dist/leaflet-heat';
 import {RoutingService} from '../services/routing.service';
 import {DataService} from '../services/data.service';
@@ -11,6 +25,8 @@ import {SpinnerOverlayService} from '../services/spinner-overlay.service';
 import 'd3';
 import * as d3 from 'd3';
 import '../../../node_modules/leaflet-fa-markers/L.Icon.FontAwesome';
+// @ts-ignore
+import {legend} from './d3-legend';
 
 declare var L: any;
 
@@ -57,6 +73,8 @@ export class MapComponent {
   public stationsFeatureCollectionCache: FeatureCollection<Point> | undefined;
   public restaurantsOfStations: { [id: string]: Array<Feature>; } = {};
 
+  private isochroneMaxRange = 20000;
+
   public onMapReady(map: Map): void {
     this.map = map;
     this.map$.emit(map);
@@ -91,6 +109,16 @@ export class MapComponent {
     this.routingService.initDepDest(initLocations);
   }
 
+  public initDepTime(time: number): void {
+    this.routingService.setDepartureTime(time);
+  }
+
+  public updateSettings(isochroneMaxRange: number, amenityRange: number, fastChargeAmount: number): void {
+    this.routingService.updateSettings(amenityRange);
+    this.isochroneMaxRange = isochroneMaxRange;
+    this.routingService.fastChargeAmount = fastChargeAmount;
+  }
+
   public route(): void {
     this.map.off('click');
     this.addRoutePath(this.routingService.getCurrentRoute());
@@ -100,8 +128,12 @@ export class MapComponent {
     this.routingService.maxRange = maxRange;
   }
 
-  public setAmenityRange(range: number): void {
-    this.routingService.amenityRange = range;
+  public setStartRange(range: number): void {
+    this.routingService.startRange = range;
+  }
+
+  public setFastChargeAmount(amount: number): void {
+    this.routingService.fastChargeAmount = amount;
   }
 
   public setMaxStationSearchRange(range: number): void {
@@ -302,11 +334,12 @@ export class MapComponent {
     console.log('addStations:', stations);
 
     // TODO: [ugly fix]: [lat lng] of station are being changed strangely in map.component
-    for (var station of stations.features){
+    for (const station of stations.features) {
       let coordinates = station.geometry.coordinates;
       coordinates = Array.from(coordinates, e => parseFloat(String(e)));
-      if (coordinates[0] > coordinates[1])
+      if (coordinates[0] > coordinates[1]) {
         coordinates = coordinates.reverse();
+      }
       station.geometry.coordinates = coordinates as LatLngTuple;
     }
 
@@ -317,7 +350,10 @@ export class MapComponent {
       const popupHtml = `
         <div>${feature.properties.type}: ${feature.properties.address}; ${feature.id}<br/>
             <button id="1-${feature.id}" type="button" class="text-center w-100 mt-3 btn btn-secondary station-selected-click">
-                    Select station
+                    Select station (full charge)
+            </button>
+            <button id="3-${feature.id}" type="button" class="text-center w-100 mt-2 btn btn-secondary station-selected-click">
+                    Select station (fast charge)
             </button>
             <button id="2-${feature.id}" type="button" class="text-center w-100 mt-2 btn btn-secondary station-show-restaurant-click">
                     Show restaurants
@@ -325,13 +361,24 @@ export class MapComponent {
         </div>`;
       layer.bindPopup(popupHtml);
     };
-    // Use a linear scaling.
-    const scale = d3.scaleLinear().domain([0, d3.max(stations.features, (station) => {
+
+    const maxValue = d3.max(stations.features, (station) => {
       if (!station.properties) {
         return 0;
       }
       return station.properties.score;
-    })]);
+    });
+    // Use a linear scaling.
+    const scale = d3.scaleLinear().domain([0, maxValue]);
+
+    const node = legend({
+      color: d3.scaleSequential([0, maxValue], d3.interpolateRgb('blue', 'green')),
+      title: 'Station score'
+    });
+    // @ts-ignore
+    document.getElementById('legend-stations').innerHTML = '';
+    // @ts-ignore
+    document.getElementById('legend-stations').append(node);
 
     const colorScaleLog = d3.scaleSequential((d) => d3.interpolateRgb('blue', 'green')(scale(d)));
 
@@ -373,7 +420,23 @@ export class MapComponent {
   @HostListener('document:click', ['$event'])
   public popupClicked(event: any): void {
     if (event.target.classList.contains('station-selected-click')) {
+      const clickId = parseInt(event.target.id.substr(0, 1), 10);
       const stationId = parseInt(event.target.id.substr(2), 10);
+      console.log(stationId);
+      // Full charge.
+      if (clickId === 1) {
+        if (this.routingService.fastCharge) {
+          this.routingService.maxRange = this.routingService.maxRange / this.routingService.fastChargeAmount;
+          this.routingService.fastCharge = false;
+        }
+      }
+      // Fast charge.
+      if (clickId === 3) {
+        if (!this.routingService.fastCharge) {
+          this.routingService.maxRange = this.routingService.maxRange * this.routingService.fastChargeAmount;
+          this.routingService.fastCharge = true;
+        }
+      }
       this.selectStation(this.getStationFeatureByID(stationId) as Feature<Point>);
       console.log(`clicked select ${stationId}`);
       return;
@@ -450,13 +513,14 @@ export class MapComponent {
                     Return to see all stations
             </button>
         </div>`;
-      const stationGeoJSON = new GeoJSON(station).bindPopup(popupHtml)
+      const stationGeoJSON = new GeoJSON(station).bindPopup(popupHtml);
 
       this.updateRestaurantsLayer(restaurantsGeoJSON, stationGeoJSON, station.geometry.coordinates.reverse() as LatLngTuple, amenityRange);
     }
   }
 
-  public updateRestaurantsLayer(restaurantsGeoJSON: GeoJSON | undefined, stationGeoJSON: GeoJSON, coordinate: LatLngTuple, amenityRange: number): void {
+  public updateRestaurantsLayer(restaurantsGeoJSON: GeoJSON | undefined, stationGeoJSON: GeoJSON, coordinate: LatLngTuple,
+                                amenityRange: number): void {
     if (restaurantsGeoJSON) {
       this.map.removeLayer(this.restaurantsLayerGroup);
       this.restaurantsLayerGroup = new LayerGroup();

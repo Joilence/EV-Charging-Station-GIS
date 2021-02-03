@@ -19,6 +19,7 @@ import {SpinnerComponent} from './spinner/spinner.component';
 import {SpinnerOverlayComponent} from './spinner/overlay/spinner-overlay.component';
 import {Overlay, OverlayModule} from '@angular/cdk/overlay';
 import {MatSliderModule} from '@angular/material/slider';
+import {MatSnackBarModule} from '@angular/material/snack-bar';
 
 @NgModule({
   declarations: [AppComponent, MapComponent, SpinnerComponent, SpinnerOverlayComponent],
@@ -34,7 +35,8 @@ import {MatSliderModule} from '@angular/material/slider';
     LeafletModule,
     NgxSidebarControlModule,
     OverlayModule,
-    MatSliderModule
+    MatSliderModule,
+    MatSnackBarModule
   ],
   providers: [Overlay],
   bootstrap: [AppComponent]

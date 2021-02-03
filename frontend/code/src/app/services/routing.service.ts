@@ -22,9 +22,13 @@ export class RoutingService {
   public wayPoints: FeatureCollection<Point> = {type: 'FeatureCollection', features: []};
   public numOfSelectedStations = 0;
   public maxRange = 300000;
+  public startRange = 300000;
   public dangerBattery = 0.2;
   public amenityRange = 1000;
   public maxStationSearchRange = 20000;
+  public fastCharge = false;
+  public fastChargeAmount = 0.8;
+  public departureTime = new Date().getTime();
 
   public addNewStation(station: Feature<Point>): void {
     if (station.properties) {
@@ -32,8 +36,9 @@ export class RoutingService {
 
       //TODO: [ugly fix]: [lat lng] of station are being changed strangely in map.component
       let coordinates = Array.from(station.geometry.coordinates, e => parseFloat(String(e)));
-      if (coordinates[1] < coordinates[0])
+      if (coordinates[1] < coordinates[0]) {
         coordinates = coordinates.reverse();
+      }
       station.geometry.coordinates = coordinates;
       // console.log('before add:', station.geometry.coordinates);
 
@@ -54,6 +59,14 @@ export class RoutingService {
     // console.log('processed locations:', locations);
     this.wayPoints = locations;
     this.numOfSelectedStations = 0;
+  }
+
+  public setDepartureTime(depTime: number): void {
+    this.departureTime = depTime;
+  }
+
+  public updateSettings(amenityRange: number): void {
+    this.amenityRange = amenityRange;
   }
 
   public handleRoute(featureCollection: FeatureCollection, map: Map, maxRange: number, dangerBattery: number): FeatureCollection {
