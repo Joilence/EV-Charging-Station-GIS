@@ -128,6 +128,11 @@ export class AppComponent implements AfterViewInit {
     );
   }
 
+  featuredRestaurants: boolean;
+  // onChange(UpdatedValue : boolean) : void{
+  //   this.featuredRestaurants = UpdatedValue;
+  // }
+
   receiveMap(map: Map): void {
     // This will throw an ExpressionChangedAfterItHasBeenCheckedError error in dev mode. That's okay and not problematic.
     this.map = map;
