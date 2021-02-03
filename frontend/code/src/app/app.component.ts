@@ -9,6 +9,7 @@ import * as d3 from 'd3';
 // @ts-ignore
 import {legend} from './map/d3-legend';
 import {MatSnackBar} from '@angular/material/snack-bar';
+import { DialogComponent } from './dialog/dialog.component';
 
 @Component({
   selector: 'app-root',
@@ -31,6 +32,9 @@ export class AppComponent implements AfterViewInit {
   };
 
   @ViewChild(MapComponent) mapComponent!: MapComponent;
+
+  @ViewChild(DialogComponent) dialogComponent!: DialogComponent;
+
 
   @ViewChild('inputStartLat', {static: true})
   inputStartLat!: ElementRef;
@@ -173,6 +177,7 @@ export class AppComponent implements AfterViewInit {
     this.mapComponent.initDepTime(departureDate.getTime());
     this.mapComponent.route();
     this.spinnerService.hide();
+    this.dialogComponent.openDialog();
   }
 
   private closeSideBar(): void {

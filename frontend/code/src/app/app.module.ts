@@ -22,9 +22,10 @@ import {SpinnerOverlayComponent} from './spinner/overlay/spinner-overlay.compone
 import {Overlay, OverlayModule} from '@angular/cdk/overlay';
 import {MatSliderModule} from '@angular/material/slider';
 import {MatSnackBarModule} from '@angular/material/snack-bar';
+import { DialogComponent } from './dialog/dialog.component';
 
 @NgModule({
-  declarations: [AppComponent, MapComponent, SpinnerComponent, SpinnerOverlayComponent],
+  declarations: [AppComponent, MapComponent, SpinnerComponent, SpinnerOverlayComponent, DialogComponent],
   imports: [
     BrowserModule,
     BrowserAnimationsModule,
