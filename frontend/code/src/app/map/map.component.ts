@@ -28,6 +28,8 @@ import * as d3 from 'd3';
 import '../../../node_modules/leaflet-fa-markers/L.Icon.FontAwesome';
 // @ts-ignore
 import {legend} from './d3-legend';
+// import {booleanContains, Polygon} from '@turf/turf';
+import * as turf from '@turf/turf'
 import { Polygon } from '@turf/turf';
 
 declare var L: any;
@@ -207,7 +209,15 @@ export class MapComponent {
       for (const path of route.features) {
         if (path.properties!.type === 'Danger Segment') {
           this.map.on('click', (e: LeafletMouseEvent) => {
-            var popLocation= e.latlng;
+            var loc= e.latlng;
+            if (this.isochronesCache) {
+              const polygon = turf.polygon(this.isochronesCache.features[0].geometry.coordinates)
+              const point = turf.point([loc.lng, loc.lat]);
+              if (turf.booleanContains(polygon, point)) {
+                console.log('click inside isochrones');
+                return;
+              }
+            }
             const wayPoints = this.routingService.getCurrentWayPoints().features;
             const lastWayPointLocation = wayPoints[wayPoints.length - 2].geometry.coordinates;
             // const lastWayPointLatLng = new LatLng(lastWayPointLocation[1], lastWayPointLocation[0])
