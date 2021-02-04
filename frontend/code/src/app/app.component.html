@@ -29,6 +29,7 @@
         <div class="leaflet-sidebar-custom-content">
 
           <h3 class="text-center w-100">Route planning (coordinates)</h3>
+          <p>Changing any value in this section requires a recalculation of the route.</p>
           <mat-form-field class="w-50 pr-1">
             <mat-label>Start: Latitude</mat-label>
             <input #inputStartLat type="number" matInput value="47.6779">
@@ -57,7 +58,11 @@
           </mat-form-field>
           <mat-form-field class="w-50 pr-1">
             <mat-label>Departure time</mat-label>
-            <input type="time" value="200" #inputTime matInput>
+            <input id="inputTime" type="time" value="200" #inputTime matInput>
+          </mat-form-field>
+          <mat-form-field class="w-50 pl-1">
+            <mat-label>Average charging time (min)</mat-label>
+            <input type="number" value="45" (change)="changeAvgChargingTime($event)" matInput>
           </mat-form-field>
           <mat-checkbox [(ngModel)]="featuredRestaurants" >Include Featured Restaurants</mat-checkbox>
           <button class="text-center w-100 mt-3" mat-raised-button color="primary" (click)="calculateRoute()">
@@ -88,6 +93,7 @@
             <mat-label>Amount for fast charge (value between 0 and 1)</mat-label>
             <input type="number" step="0.1" (change)="settingsChanged()" value="0.8" #inputFastChargeAmount matInput>
           </mat-form-field>
+          <mat-slide-toggle [checked]="true" (change)="toggleTimeVis()" class="w-50 pl-2">Display time along route</mat-slide-toggle>
         </div>
       </div>
       <div class="leaflet-sidebar-pane" id="layerTab">
