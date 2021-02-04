@@ -55,6 +55,7 @@ export class MapComponent {
   private stationsLayerGroup: LayerGroup = new LayerGroup();
   private isochronesLayerGroup: LayerGroup = new LayerGroup();
   private restaurantsLayerGroup: LayerGroup = new LayerGroup();
+  private timeLayer: LayerGroup = new LayerGroup();
 
   private layers: Layer[] = [];
 
@@ -74,6 +75,8 @@ export class MapComponent {
   public restaurantsOfStations: { [id: string]: Array<Feature>; } = {};
 
   private isochroneMaxRange = 20000;
+  private timeLayerAdded = false;
+  private timeLayerShouldAdd = true;
 
   public onMapReady(map: Map): void {
     this.map = map;
@@ -266,6 +269,8 @@ export class MapComponent {
       this.removeAllIsochrones();
       this.removeAllRestaurants();
       this.updateRouteLayer(routeGeoJSON);
+      console.log('called');
+      this.addTimeLayer(route);
     });
   }
 
@@ -276,6 +281,135 @@ export class MapComponent {
     this.routeLayerGroup.addTo(this.map);
     this.map.fitBounds(routeGeoJSON.getBounds(), {padding: [50, 50]});
     this.addWayPoints(this.routingService.getCurrentWayPoints());
+  }
+
+  private addTimeLayer(route: FeatureCollection | undefined): void {
+    console.log(route);
+    if (route) {
+      this.map.removeLayer(this.timeLayer);
+      this.timeLayer = new LayerGroup();
+
+      const routeDetails = route.features[0];
+
+      // in seconds
+      // @ts-ignore
+      const totalDuration = routeDetails.properties.summary.duration + routeDetails.properties.segments.length *
+        this.routingService.averageChargingTime * 60;
+      // in meter
+      // @ts-ignore
+      const totalDistance = routeDetails.properties.summary.distance;
+
+      let currentDuration = 0;
+      let currentDistance = 0;
+      let timeStep = 1;
+
+      // @ts-ignore
+      const wayPoints = route.features[0].geometry.coordinates;
+
+      // @ts-ignore
+      for (let j = 0; j < routeDetails.properties.segments.length; j++) {
+        // @ts-ignore
+        const segment = routeDetails.properties.segments[j];
+        // @ts-ignore
+        for (let i = 0; i < segment.steps.length; i++) {
+          currentDuration += segment.steps[i].duration;
+          currentDistance += segment.steps[i].distance;
+          if (i === 0 && j === 0) {
+            const startWayPoint = segment.steps[i].way_points[0];
+            const wayPoint = wayPoints[startWayPoint];
+            const marker = new Marker([wayPoint[1], wayPoint[0]], {opacity: 0.1});
+            marker.bindTooltip(`Departure Time: ${new Date(this.routingService.departureTime).toTimeString()}`, {offset: [0, 0]});
+            this.timeLayer.addLayer(marker);
+            continue;
+          }
+          // @ts-ignore
+          if (i === segment.steps.length - 1 && j === routeDetails.properties.segments.length - 1) {
+            const startWayPoint = segment.steps[i].way_points[1];
+            const wayPoint = wayPoints[startWayPoint];
+            const marker = new Marker([wayPoint[1], wayPoint[0]], {opacity: 0.1});
+            marker.bindTooltip(`Time: ${new Date(this.routingService.departureTime + totalDuration * 1000).toTimeString()}<br/>
+          Travel time: ${this.getTimeFromMins(totalDuration / 60)}<br/>
+          Distance: ${this.formatDistance(totalDistance / 1000)} km`, {offset: [0, 0]});
+            this.timeLayer.addLayer(marker);
+            continue;
+          }
+          if (i === segment.steps.length - 1) {
+            const startWayPoint = segment.steps[i].way_points[1];
+            const wayPoint = wayPoints[startWayPoint];
+            const marker = new Marker([wayPoint[1], wayPoint[0]], {opacity: 0.1});
+            marker.bindTooltip(`Time: ${new Date(this.routingService.departureTime + currentDuration * 1000).toTimeString()}<br/>
+          Travel time: ${this.getTimeFromMins(currentDuration / 60)}<br/>
+          Distance: ${this.formatDistance(currentDistance / 1000)} km`, {offset: [0, 0]});
+            this.timeLayer.addLayer(marker);
+            continue;
+          }
+          // Add a marker. Better overestimate time than underestimate.
+          if (currentDuration > timeStep * 3600) {
+            const startWayPoint = segment.steps[i].way_points[0];
+            const wayPoint = wayPoints[startWayPoint];
+            const icon = new L.icon.fontAwesome({
+              iconClasses: 'fa fa-clock',
+              markerColor: 'grey',
+              markerFillOpacity: 0.3,
+              markerStrokeWidth: 1,
+              markerStrokeColor: 'grey',
+              // icon style
+              iconColor: '#FFF'
+            });
+            const marker = new Marker([wayPoint[1], wayPoint[0]], {opacity: 0.5, icon});
+            marker.bindTooltip(`Time: ${new Date(this.routingService.departureTime + currentDuration * 1000).toTimeString()}<br/>
+          Travel time: ${this.getTimeFromMins(currentDuration / 60)} hour(s)<br/>
+          Distance: ${this.formatDistance(currentDistance / 1000)} km`, {offset: [0, 0]});
+            this.timeLayer.addLayer(marker);
+            timeStep++;
+          }
+        }
+        currentDuration += this.routingService.averageChargingTime * 60;
+      }
+
+      if (this.timeLayerShouldAdd) {
+        this.timeLayer.addTo(this.map);
+        this.timeLayerAdded = true;
+      }
+    } else {
+      this.map.removeLayer(this.timeLayer);
+      this.timeLayer = new LayerGroup();
+    }
+  }
+
+  private formatDistance(value: number): number {
+    // tslint:disable-next-line:no-bitwise
+    return Math.round((value + Number.EPSILON) * 100) / 100;
+  }
+
+  private zeroPad = (num: number, places: number) => String(num).padStart(places, '0');
+
+  private getTimeFromMins(mins: number): string {
+    // tslint:disable-next-line:no-bitwise
+    const h = mins / 60 | 0;
+    // tslint:disable-next-line:no-bitwise
+    const m = mins % 60 | 0;
+    return this.zeroPad(h, 2) + 'h ' + this.zeroPad(m, 2) + 'min';
+  }
+
+  public toggleTimeLayer(): void {
+    if (this.timeLayerShouldAdd) {
+      this.timeLayerShouldAdd = false;
+      if (this.timeLayerAdded) {
+        this.timeLayer.removeFrom(this.map);
+        this.timeLayerAdded = false;
+      }
+    } else {
+      this.timeLayerShouldAdd = true;
+      if (!this.timeLayerAdded) {
+        this.timeLayer.addTo(this.map);
+        this.timeLayerAdded = true;
+      }
+    }
+  }
+
+  public changeAvgChargingTime(time: number): void {
+    this.routingService.averageChargingTime = time;
   }
 
   /**
@@ -610,6 +744,7 @@ export class MapComponent {
     this.removeAllIsochrones();
     this.removeAllStations();
     this.removeAllWayPoints();
+    this.addTimeLayer(undefined);
     this.removeLayers();
     this.map.off('click');
     this.map.removeLayer(this.routeLayerGroup);

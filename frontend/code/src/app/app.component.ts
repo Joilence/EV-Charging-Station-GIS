@@ -58,6 +58,8 @@ export class AppComponent implements AfterViewInit {
   @ViewChild('layerTab', {static: true})
   layerTab!: ElementRef;
 
+  private zeroPad = (num: number, places: number) => String(num).padStart(places, '0');
+
   /*
    * Services or other dependencies are often imported via dependency injection.
    * See https://angular.io/guide/dependency-injection for more details.
@@ -86,7 +88,8 @@ export class AppComponent implements AfterViewInit {
     });
     // @ts-ignore
     document.getElementById('legend-heatmap').append(node);
-    this.inputTime.nativeElement.value = new Date().getHours() + ':' + new Date().getMinutes();
+    this.inputTime.nativeElement.value = this.zeroPad(new Date().getHours(), 2) + ':' +
+      this.zeroPad(new Date().getMinutes(), 2);
   }
 
   settingsChanged(): void {
@@ -186,5 +189,13 @@ export class AppComponent implements AfterViewInit {
     console.log(this.map.getZoom());
     this.mapComponent.addStationsHeat(this.radiusHeat, this.maxZoomHeat);
     // this.closeSideBar();
+  }
+
+  public toggleTimeVis(): void {
+    this.mapComponent.toggleTimeLayer();
+  }
+
+  public changeAvgChargingTime(event: any): void {
+    this.mapComponent.changeAvgChargingTime(event.target.value);
   }
 }

@@ -29,6 +29,8 @@ export class RoutingService {
   public fastCharge = false;
   public fastChargeAmount = 0.8;
   public departureTime = new Date().getTime();
+  // in minutes
+  public averageChargingTime = 45;
 
   public addNewStation(station: Feature<Point>): void {
     if (station.properties) {
