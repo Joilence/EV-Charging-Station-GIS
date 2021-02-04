@@ -7,23 +7,16 @@ import {MatDialog} from '@angular/material/dialog';
   styleUrls: ['./dialog.component.scss']
 })
 export class DialogComponent implements OnInit {
-  // content = {
-  //   title: "Title",
-  //   index: 0 
-  // };
-
   content = {}
 
-  constructor(public dialog: MatDialog) { 
-  }
+  constructor(public dialog: MatDialog) {}
   
 
   ngOnInit(): void {
   }
 
+  //old
   openDialog() {
-    // const dialogRef = this.dialog.open(DialogComponentExampleDialog);
-
     console.log(this.content)
     const dialogRef = this.dialog.open(DialogComponent);
     dialogRef.componentInstance.content = {
@@ -46,16 +39,33 @@ export class DialogComponent implements OnInit {
     switch (index){
       case 0:
         dialogRef.componentInstance.content = {
-          title: "First tut",
-          button: "Next",
+          title: "Welcome to JED!",
+          body: ["Are you ready to travel with us through Germany with your Electric Vehicle?",
+          "If it is your first time here, follow this tutorial.",
+          "Happy Routing!"
+        ],
+          button: "Start Tutorial",
           index: 1
         }
         break;
       case 1:
         dialogRef.componentInstance.content = {
-          title: "Second tut",
+          title: "Let's prepare for your eco journey",
+          body: [
+            "Open the Sidebar and insert the coordinates of departure and destination.",
+            "In addition you can also specify the maximum autonomy of your vehicle, how much autonomy you have at the moment and the departure time. This will help us provide you the best solution for your journey",
+            "Tip: Select \"Include Featured Restaurant\" if you wish to find a special place to stop during your trip!"
+          ],
+          img: "assets/sidebar.png",
           button: "Next",
           index: 2
+        }
+        break;
+      case 2:
+        dialogRef.componentInstance.content = {
+          title: "Second tut",
+          button: "Next",
+          index: 3
         }
         break;
       }

@@ -96,7 +96,7 @@ export class AppComponent implements AfterViewInit {
     document.getElementById('legend-heatmap').append(node);
     this.inputTime.nativeElement.value = new Date().getHours() + ':' + new Date().getMinutes();
 
-    this.dialogComponent.openDialog();
+    this.dialogComponent.startTutorial(0);
 
   }
 
