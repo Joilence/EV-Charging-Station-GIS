@@ -37,17 +37,7 @@ export class DialogComponent implements OnInit {
   startTutorial(index: number){
     const dialogRef = this.dialog.open(DialogComponent);
     switch (index){
-      case 0:
-        dialogRef.componentInstance.content = {
-          title: "Welcome to JED!",
-          body: ["Are you ready to travel with us through Germany with your Electric Vehicle?",
-          "If it is your first time here, follow this tutorial.",
-          "Happy Routing!"
-        ],
-          button: "Start Tutorial",
-          index: 1
-        }
-        break;
+
       case 1:
         dialogRef.componentInstance.content = {
           title: "Let's prepare for your eco journey",
@@ -57,17 +47,29 @@ export class DialogComponent implements OnInit {
             "Tip: Select \"Include Featured Restaurant\" if you wish to find a special place to stop during your trip!"
           ],
           img: "assets/sidebar.png",
-          button: "Next",
-          index: 2
+          button1: "Prev",
+          button2: "Next",
+          index: index,
         }
         break;
       case 2:
         dialogRef.componentInstance.content = {
           title: "Second tut",
-          button: "Next",
-          index: 3
+          button1: "Prev",
+          button2: "Next",
+          index: index
         }
         break;
+      default:
+        dialogRef.componentInstance.content = {
+          title: "Welcome to JED!",
+          body: ["Are you ready to travel with us through Germany with your Electric Vehicle?",
+          "If it is your first time here, follow this tutorial.",
+          "Happy Routing!"
+        ],
+          button2: "Start Tutorial",
+          index: 0
+        }
       }
 
     dialogRef.afterClosed().subscribe(result => {
