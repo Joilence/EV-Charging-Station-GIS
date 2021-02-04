@@ -96,6 +96,8 @@ export class AppComponent implements AfterViewInit {
     document.getElementById('legend-heatmap').append(node);
     this.inputTime.nativeElement.value = new Date().getHours() + ':' + new Date().getMinutes();
 
+    this.dialogComponent.openDialog();
+
   }
 
   settingsChanged(): void {
@@ -128,7 +130,7 @@ export class AppComponent implements AfterViewInit {
     );
   }
 
-  featuredRestaurants: boolean;
+  // featuredRestaurants: boolean;
   // onChange(UpdatedValue : boolean) : void{
   //   this.featuredRestaurants = UpdatedValue;
   // }
@@ -182,7 +184,6 @@ export class AppComponent implements AfterViewInit {
     this.mapComponent.initDepTime(departureDate.getTime());
     this.mapComponent.route();
     this.spinnerService.hide();
-    this.dialogComponent.openDialog();
   }
 
   private closeSideBar(): void {
