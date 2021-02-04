@@ -1,6 +1,6 @@
 <h2 mat-dialog-title>{{content.title}}</h2>
 
-<p *ngFor="let par of content.body">{{par}}</p>
+<div *ngFor="let par of content.body">{{par}}</div>
 <img [src]="content.img"/> 
 <br>
 <button mat-button mat-dialog-close>Cancel</button>

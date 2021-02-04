@@ -40,10 +40,11 @@ export class DialogComponent implements OnInit {
 
       case 1:
         dialogRef.componentInstance.content = {
-          title: "Let's prepare for your eco journey",
+          title: "Let's prepare for your electric journey",
           body: [
             "Open the Sidebar and insert the coordinates of departure and destination.",
-            "In addition you can also specify the maximum autonomy of your vehicle, how much autonomy you have at the moment and the departure time. This will help us provide you the best solution for your journey",
+            "In addition you can also specify the maximum autonomy of your vehicle, how much autonomy you have at the moment and the departure time.",
+            "This will help us provide you the best solution for your journey",
             "Tip: Select \"Include Featured Restaurant\" if you wish to find a special place to stop during your trip!"
           ],
           img: "assets/sidebar.png",
@@ -54,12 +55,26 @@ export class DialogComponent implements OnInit {
         break;
       case 2:
         dialogRef.componentInstance.content = {
-          title: "Second tut",
+          title: "Time for a charge?",
+          body: [
+
+          ],
           button1: "Prev",
           button2: "Next",
           index: index
         }
         break;
+        case 3:
+          dialogRef.componentInstance.content = {
+            title: "Tut",
+            body: [
+  
+            ],
+            button1: "Prev",
+            button2: "Next",
+            index: index
+          }
+          break;
       default:
         dialogRef.componentInstance.content = {
           title: "Welcome to JED!",
