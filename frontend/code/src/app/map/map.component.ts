@@ -734,7 +734,11 @@ export class MapComponent {
   public addWayPoints(wayPoints: FeatureCollection): void {
     console.log('add way points:', wayPoints);
     const onEachFeature = (feature: Feature<Geometry, any>, layer: Layer) => {
-      layer.bindPopup(`${feature.properties.type}: ${feature.properties.name}`);
+      if (feature.properties.type === 'Station') {
+        layer.bindPopup(`${feature.properties.type}: ${feature.properties.address}, ${feature.properties.city}`);
+      } else {
+        layer.bindPopup(`${feature.properties.type}: ${feature.properties.name}`);
+      }
     };
     const wayPointsGeoJSON = new GeoJSON(wayPoints, {
       onEachFeature,
