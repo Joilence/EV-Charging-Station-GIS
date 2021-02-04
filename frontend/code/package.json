@@ -24,6 +24,7 @@
     "@asymmetrik/ngx-leaflet": "^8.1.0",
     "@fortawesome/fontawesome-free": "^5.15.2",
     "@runette/ngx-leaflet-sidebar": "^1.0.3",
+    "@turf/turf": "^6.3.0",
     "bootstrap": "^4.5.3",
     "d3": "^6.2.0",
     "leaflet": "^1.7.1",
