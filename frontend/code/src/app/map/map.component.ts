@@ -59,6 +59,7 @@ export class MapComponent {
   private stationsLayerGroup: LayerGroup = new LayerGroup();
   private isochronesLayerGroup: LayerGroup = new LayerGroup();
   private restaurantsLayerGroup: LayerGroup = new LayerGroup();
+  private hoverCircle?: Circle;
   private timeLayer: LayerGroup = new LayerGroup();
 
   private layers: Layer[] = [];
@@ -239,6 +240,38 @@ export class MapComponent {
               }
             });
           });
+          
+          this.map.on('mousemove', (e: LeafletMouseEvent) => {
+            if (this.hoverCircle) this.map.removeLayer(this.hoverCircle);
+            const loc = e.latlng;
+
+            // TODO: Using dataservice would cause lagging
+            // this.dataService.getRoute('driving-car', [lastWayPointLocation, [loc.lng, loc.lat]]).subscribe((route: FeatureCollection) => {
+            //   // console.log('route of click and departure:', route);
+            //   // TODO: danger segments not accurate
+            //   const distance = route.features[0].properties!.summary.distance;
+            //   if (distance <= this.routingService.maxRange) {
+            //     const metresPerPixel = 40075016.686 * Math.abs(Math.cos(this.map.getCenter().lat * Math.PI/180)) / Math.pow(2, this.map.getZoom()+8);
+            //     const restDistance = this.routingService.maxRange - distance;
+            //     const r = restDistance / metresPerPixel;
+            //     this.hoverCircle = new Circle(loc, {radius: r*200}).addTo(this.map);
+            //   }
+            // });
+            
+            // TODO: pixel is not accurate
+            // const distance = loc.distanceTo([lastWayPointLocation[1], lastWayPointLocation[0]]);
+            // const locPoint = this.map.latLngToLayerPoint(loc);
+            // const lastPoint = this.map.latLngToLayerPoint([lastWayPointLocation[1], lastWayPointLocation[0]]);
+            // const pixelDistance = locPoint.distanceTo(lastPoint);
+            // const metresPerPixel = 40075016.686 * Math.abs(Math.cos(this.map.getCenter().lat * Math.PI/180)) / Math.pow(2, this.map.getZoom()+8);
+            // const pixelMaxRange = this.routingService.maxRange / metresPerPixel;
+            // console.log(`loc in point ${locPoint}\nlast in point ${lastPoint}\npixel distance ${pixelDistance}`);
+            // // maxRange * 0.6: add tolerance for euclidean distance
+            // if (distance <= this.routingService.maxRange * 0.6) {
+            //   const r = pixelMaxRange - pixelDistance;
+            //   this.hoverCircle = new Circle(loc, {radius: r*200}).addTo(this.map);
+            // }
+          })
         }
       }
 
