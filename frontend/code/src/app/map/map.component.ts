@@ -74,8 +74,8 @@ export class MapComponent {
     center: latLng(48.13, 8.20)
   };
 
-  public isochronesCache: FeatureCollection<Polygon> | undefined;
-  public stationsFeatureCollectionCache: FeatureCollection<Point> | undefined;
+  public isochronesCache?: FeatureCollection<Polygon>;
+  public stationsFeatureCollectionCache?: FeatureCollection<Point>;
   public restaurantsOfStations: { [id: string]: Array<Feature>; } = {};
 
   private isochroneMaxRange = 20000;
@@ -208,8 +208,10 @@ export class MapComponent {
 
       for (const path of route.features) {
         if (path.properties!.type === 'Danger Segment') {
+          const wayPoints = this.routingService.getCurrentWayPoints().features;
+          const lastWayPointLocation = wayPoints[wayPoints.length - 2].geometry.coordinates;
           this.map.on('click', (e: LeafletMouseEvent) => {
-            var loc= e.latlng;
+            const loc= e.latlng;
             if (this.isochronesCache) {
               const polygon = turf.polygon(this.isochronesCache.features[0].geometry.coordinates)
               const point = turf.point([loc.lng, loc.lat]);
@@ -218,8 +220,7 @@ export class MapComponent {
                 return;
               }
             }
-            const wayPoints = this.routingService.getCurrentWayPoints().features;
-            const lastWayPointLocation = wayPoints[wayPoints.length - 2].geometry.coordinates;
+            
             // const lastWayPointLatLng = new LatLng(lastWayPointLocation[1], lastWayPointLocation[0])
             this.dataService.getRoute('driving-car', [lastWayPointLocation, [loc.lng, loc.lat]]).subscribe((route: FeatureCollection) => {
               // console.log('route of click and departure:', route);
@@ -236,7 +237,7 @@ export class MapComponent {
                                      Math.min(this.routingService.maxRange - distance,
                                               this.routingService.maxStationSearchRange));
               }
-            })
+            });
           });
         }
       }
