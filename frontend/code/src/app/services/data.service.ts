@@ -2,6 +2,7 @@ import {Injectable} from '@angular/core';
 import {HttpClient, HttpHeaders} from '@angular/common/http';
 import {Observable} from 'rxjs';
 import {FeatureCollection, Geometry} from 'geojson';
+import { Polygon } from '@turf/turf';
 
 const httpOptions = {
   headers: new HttpHeaders({
@@ -51,7 +52,7 @@ export class DataService {
     return this.http.post<any>(url, {profile, coordinates}, httpOptions);
   }
 
-  public getIsochrones(locations: number[][], rangeType: string, range: number[]): Observable<FeatureCollection> {
+  public getIsochrones(locations: number[][], rangeType: string, range: number[]): Observable<FeatureCollection<Polygon>> {
     const url = this.baseUrl + 'isochrones';
     return this.http.post<any>(url, {locations, 'range_type': rangeType, range}, httpOptions);
   }

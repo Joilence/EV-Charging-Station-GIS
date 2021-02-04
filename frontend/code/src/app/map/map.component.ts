@@ -6,15 +6,16 @@ import {
   GeoJSON,
   Icon,
   LatLng,
-  latLng,
   LatLngTuple,
+  LatLngExpression,
+  latLng,
   Layer,
   LayerGroup,
   LeafletMouseEvent,
   Map,
   Marker,
   Popup,
-  TileLayer
+  TileLayer,
 } from 'leaflet';
 import 'leaflet.heat/dist/leaflet-heat';
 import {RoutingService} from '../services/routing.service';
@@ -27,6 +28,7 @@ import * as d3 from 'd3';
 import '../../../node_modules/leaflet-fa-markers/L.Icon.FontAwesome';
 // @ts-ignore
 import {legend} from './d3-legend';
+import { Polygon } from '@turf/turf';
 
 declare var L: any;
 
@@ -70,7 +72,7 @@ export class MapComponent {
     center: latLng(48.13, 8.20)
   };
 
-  public isochronesCache: FeatureCollection | undefined;
+  public isochronesCache: FeatureCollection<Polygon> | undefined;
   public stationsFeatureCollectionCache: FeatureCollection<Point> | undefined;
   public restaurantsOfStations: { [id: string]: Array<Feature>; } = {};
 
@@ -150,7 +152,7 @@ export class MapComponent {
     this.removeAllRestaurants();
     this.cleanCache();
     this.spinnerService.show('searching for stations...');
-    this.dataService.getIsochrones([location], 'distance', [range]).subscribe((isochrones: FeatureCollection) => {
+    this.dataService.getIsochrones([location], 'distance', [range]).subscribe((isochrones: FeatureCollection<Polygon>) => {
       this.isochronesCache = isochrones;
       this.addIsochrones(isochrones);
     });
@@ -166,7 +168,6 @@ export class MapComponent {
         this.spinnerService.hide();
       } else {
         this.spinnerService.hide();
-        console.log('hide spinner');
         this.stationsFeatureCollectionCache = stations;
         this.addStations(stations);
         // console.log('caching stations: original:', stations);
@@ -210,18 +211,18 @@ export class MapComponent {
             const wayPoints = this.routingService.getCurrentWayPoints().features;
             const lastWayPointLocation = wayPoints[wayPoints.length - 2].geometry.coordinates;
             // const lastWayPointLatLng = new LatLng(lastWayPointLocation[1], lastWayPointLocation[0])
-            this.dataService.getRoute('driving-car', [lastWayPointLocation, [popLocation.lng, popLocation.lat]]).subscribe((route: FeatureCollection) => {
+            this.dataService.getRoute('driving-car', [lastWayPointLocation, [loc.lng, loc.lat]]).subscribe((route: FeatureCollection) => {
               // console.log('route of click and departure:', route);
               // TODO: danger segments not accurate
               const distance = route.features[0].properties!.summary.distance * 0.9;
-              if (distance >= this.routingService.maxRange ) {
+              if (distance >= this.routingService.maxRange) {
                 new Popup()
-                .setLatLng(popLocation)
+                .setLatLng(loc)
                 .setContent(`Sorry. Too far away, not reachable.<br /> distance from last point ${distance}`)
                 .openOn(this.map);
               } else {
                 // TODO: decide max isochrones for searching stations
-                this.selectDropPoint([popLocation.lng, popLocation.lat] ,
+                this.selectDropPoint([loc.lng, loc.lat] ,
                                      Math.min(this.routingService.maxRange - distance,
                                               this.routingService.maxStationSearchRange));
               }
@@ -269,7 +270,7 @@ export class MapComponent {
       this.removeAllIsochrones();
       this.removeAllRestaurants();
       this.updateRouteLayer(routeGeoJSON);
-      console.log('called');
+      // console.log('called');
       this.addTimeLayer(route);
     });
   }
@@ -284,7 +285,7 @@ export class MapComponent {
   }
 
   private addTimeLayer(route: FeatureCollection | undefined): void {
-    console.log(route);
+    // console.log(route);
     if (route) {
       this.map.removeLayer(this.timeLayer);
       this.timeLayer = new LayerGroup();
