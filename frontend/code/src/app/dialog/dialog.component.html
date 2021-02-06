@@ -1,9 +1,9 @@
 <h2 mat-dialog-title>{{content.title}}</h2>
 
 <div *ngFor="let par of content.body">{{par}}</div>
-<img [src]="content.img"/> 
+<img class="text-center" [src]="content.img"/>
 <br>
-<button mat-button mat-dialog-close>Cancel</button>
-<button mat-button mat-dialog-close (click)="startTutorial(content.index-1)">{{content.button1}}</button>
-<button mat-button mat-dialog-close (click)="startTutorial(content.index+1)">{{content.button2}}</button>
-<button mat-button mat-dialog-close>{{content.button3}}</button>
+<button mat-raised-button mat-dialog-close class="mt-3">Cancel</button>
+<button mat-raised-button mat-dialog-close (click)="startTutorial(content.index-1)">{{content.button1}}</button>
+<button mat-raised-button mat-dialog-close (click)="startTutorial(content.index+1)">{{content.button2}}</button>
+<button mat-raised-button mat-dialog-close>{{content.button3}}</button>
