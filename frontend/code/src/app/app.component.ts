@@ -10,6 +10,7 @@ import * as d3 from 'd3';
 import {legend} from './map/d3-legend';
 import {MatSnackBar} from '@angular/material/snack-bar';
 import {DialogComponent} from './dialog/dialog.component';
+import {StorageMap} from '@ngx-pwa/local-storage';
 
 @Component({
   selector: 'app-root',
@@ -72,7 +73,7 @@ export class AppComponent implements AfterViewInit {
    * See https://angular.io/guide/dependency-injection for more details.
    */
   constructor(private dataService: DataService, private spinnerService: SpinnerOverlayService, private snackBar: MatSnackBar,
-              private appRef: ApplicationRef) {
+              private localStorage: StorageMap) {
   }
 
   ngAfterViewInit(): void {
@@ -98,7 +99,12 @@ export class AppComponent implements AfterViewInit {
     document.getElementById('legend-heatmap').append(node);
     // this.inputTime.nativeElement.value = new Date().getHours() + ':' + new Date().getMinutes();
 
-    this.dialogComponent.startTutorial(0);
+    this.localStorage.get('tutorial').subscribe((getTut) => {
+      console.log(getTut);
+      if (getTut === undefined) {
+        this.dialogComponent.startTutorial(0);
+      }
+    });
 
     this.inputTime.nativeElement.value = this.zeroPad(new Date().getHours(), 2) + ':' +
       this.zeroPad(new Date().getMinutes(), 2);

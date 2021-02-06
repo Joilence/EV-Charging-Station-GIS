@@ -23,6 +23,7 @@
     "@angular/router": "^11.1.1",
     "@asymmetrik/ngx-leaflet": "^8.1.0",
     "@fortawesome/fontawesome-free": "^5.15.2",
+    "@ngx-pwa/local-storage": "^11.1.0",
     "@runette/ngx-leaflet-sidebar": "^1.0.3",
     "@turf/turf": "^6.3.0",
     "@types/leaflet.markercluster": "^1.4.3",

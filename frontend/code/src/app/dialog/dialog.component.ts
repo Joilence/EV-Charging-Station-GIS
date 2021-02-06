@@ -1,5 +1,6 @@
 import {Component} from '@angular/core';
 import {MatDialog} from '@angular/material/dialog';
+import {StorageMap} from '@ngx-pwa/local-storage';
 
 @Component({
   selector: 'app-dialog',
@@ -25,7 +26,7 @@ export class DialogComponent {
     index: null
   };
 
-  constructor(public dialog: MatDialog) {
+  constructor(public dialog: MatDialog, private localStorage: StorageMap) {
   }
 
   startTutorial(index: number): void {
@@ -150,7 +151,11 @@ export class DialogComponent {
     }
 
     dialogRef.afterClosed().subscribe(result => {
-      console.log(`Dialog result: ${result}`);
+      this.localStorage.has('tutorial').subscribe((hasTut) => {
+        if (!hasTut) {
+          this.localStorage.set('tutorial', true).subscribe();
+        }
+      });
     });
   }
 }
