@@ -7,7 +7,7 @@
     <div class="leaflet-sidebar-tabs">
       <!-- top aligned tabs -->
       <ul role="tablist">
-        <li #homeActive><a href="#home" role="tab"><i class="fa fa-bars active"></i></a></li>
+        <li #homeActive><a id="clickHome" href="#home" role="tab"><i class="fa fa-bars active"></i></a></li>
         <li><a href="#settings" role="tab"><i class="fa fa-cogs"></i></a></li>
         <li #layerTab><a href="#layerTab" role="tab"><i class="fa fa-layer-group"></i></a></li>
       </ul>
@@ -64,7 +64,7 @@
             <mat-label>Average charging time (min)</mat-label>
             <input type="number" value="45" (change)="changeAvgChargingTime($event)" matInput>
           </mat-form-field>
-          <mat-checkbox [(ngModel)]="featuredRestaurants" >Include Featured Restaurants</mat-checkbox>
+          <mat-checkbox [checked]="true" [(ngModel)]="featuredRestaurants" >Include Featured Restaurants</mat-checkbox>
           <button class="text-center w-100 mt-3" mat-raised-button color="primary" (click)="calculateRoute()">
             Calculate
           </button>
