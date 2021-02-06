@@ -94,6 +94,9 @@
             <input type="number" step="0.1" (change)="settingsChanged()" value="0.8" #inputFastChargeAmount matInput>
           </mat-form-field>
           <mat-slide-toggle [checked]="true" (change)="toggleTimeVis()" class="w-50 pl-2">Display time along route</mat-slide-toggle>
+          <button class="text-center w-100 mt-3" mat-raised-button color="primary" (click)="this.dialogComponent.startTutorial(0)">
+            Show tutorial
+          </button>
         </div>
       </div>
       <div class="leaflet-sidebar-pane" id="layerTab">
