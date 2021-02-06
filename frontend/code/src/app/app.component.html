@@ -1,12 +1,13 @@
 <div id="app">
-  <app-map (map$)="receiveMap($event)"></app-map>
+  <app-map (map$)="receiveMap($event)" [showFeat]="featuredRestaurants"></app-map>
+  <app-dialog></app-dialog>
   <leaflet-sidebar-control [map]="map" [options]="sidebarOptions"></leaflet-sidebar-control>
   <div id="sidebar" #sidebar class="leaflet-sidebar collapsed">
     <!-- Nav tabs -->
     <div class="leaflet-sidebar-tabs">
       <!-- top aligned tabs -->
       <ul role="tablist">
-        <li #homeActive><a href="#home" role="tab"><i class="fa fa-bars active"></i></a></li>
+        <li #homeActive><a id="clickHome" href="#home" role="tab"><i class="fa fa-bars active"></i></a></li>
         <li><a href="#settings" role="tab"><i class="fa fa-cogs"></i></a></li>
         <li #layerTab><a href="#layerTab" role="tab"><i class="fa fa-layer-group"></i></a></li>
       </ul>
@@ -63,6 +64,7 @@
             <mat-label>Average charging time (min)</mat-label>
             <input type="number" value="45" (change)="changeAvgChargingTime($event)" matInput>
           </mat-form-field>
+          <mat-checkbox [checked]="true" [(ngModel)]="featuredRestaurants" >Include Featured Restaurants</mat-checkbox>
           <button class="text-center w-100 mt-3" mat-raised-button color="primary" (click)="calculateRoute()">
             Calculate
           </button>
@@ -92,6 +94,9 @@
             <input type="number" step="0.1" (change)="settingsChanged()" value="0.8" #inputFastChargeAmount matInput>
           </mat-form-field>
           <mat-slide-toggle [checked]="true" (change)="toggleTimeVis()" class="w-50 pl-2">Display time along route</mat-slide-toggle>
+          <button class="text-center w-100 mt-3" mat-raised-button color="primary" (click)="this.dialogComponent.startTutorial(0)">
+            Show tutorial
+          </button>
         </div>
       </div>
       <div class="leaflet-sidebar-pane" id="layerTab">

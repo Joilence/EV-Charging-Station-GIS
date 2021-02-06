@@ -1,5 +1,5 @@
 /// <reference types='leaflet-sidebar-v2' />
-import {Component, EventEmitter, HostListener, Output} from '@angular/core';
+import {Component, EventEmitter, HostListener, Input, Output} from '@angular/core';
 import {Feature, FeatureCollection, Geometry, Point} from 'geojson';
 import {
   Circle,
@@ -31,6 +31,8 @@ import {legend} from './d3-legend';
 // import {booleanContains, Polygon} from '@turf/turf';
 import * as turf from '@turf/turf'
 import { Polygon } from '@turf/turf';
+import {MatSnackBar} from '@angular/material/snack-bar';
+import '../../../node_modules/leaflet.markercluster/dist/leaflet.markercluster';
 
 declare var L: any;
 
@@ -39,12 +41,19 @@ declare var L: any;
   templateUrl: './map.component.html',
   styleUrls: ['./map.component.scss'],
 })
+
+
 export class MapComponent {
 
   constructor(private routingService: RoutingService, private mapService: MapService,
-              private spinnerService: SpinnerOverlayService, private dataService: DataService) {
+              private spinnerService: SpinnerOverlayService, private dataService: DataService,
+              private snackBarRef: MatSnackBar) {
     this.mapService.setMapComponent(this);
+    this.routingService.setMapComponent(this);
+    this.showFeat = false;
   }
+
+  @Input() showFeat: boolean;
 
   /**
    *  #######################################################################
@@ -63,6 +72,11 @@ export class MapComponent {
   private timeLayer: LayerGroup = new LayerGroup();
 
   private layers: Layer[] = [];
+
+  private destinationMarker!: Layer;
+  private departureMarker!: Layer;
+
+  private stationMarkers!: Array<Layer>;
 
   options = {
     layers: [
@@ -313,8 +327,8 @@ export class MapComponent {
       this.removeAllStations();
       this.removeAllIsochrones();
       this.removeAllRestaurants();
+      this.stationMarkers = new Array<Layer>();
       this.updateRouteLayer(routeGeoJSON);
-      // console.log('called');
       this.addTimeLayer(route);
     });
   }
@@ -329,10 +343,9 @@ export class MapComponent {
   }
 
   private addTimeLayer(route: FeatureCollection | undefined): void {
-    // console.log(route);
     if (route) {
       this.map.removeLayer(this.timeLayer);
-      this.timeLayer = new LayerGroup();
+      this.timeLayer = new L.markerClusterGroup();
 
       const routeDetails = route.features[0];
 
@@ -351,6 +364,15 @@ export class MapComponent {
       // @ts-ignore
       const wayPoints = route.features[0].geometry.coordinates;
 
+      const icon = new L.icon.fontAwesome({
+        iconClasses: 'fa fa-clock',
+        markerColor: 'grey',
+        markerFillOpacity: 0.3,
+        markerStrokeWidth: 1,
+        markerStrokeColor: 'grey',
+        // icon style
+        iconColor: '#FFF'
+      });
       // @ts-ignore
       for (let j = 0; j < routeDetails.properties.segments.length; j++) {
         // @ts-ignore
@@ -360,51 +382,35 @@ export class MapComponent {
           currentDuration += segment.steps[i].duration;
           currentDistance += segment.steps[i].distance;
           if (i === 0 && j === 0) {
-            const startWayPoint = segment.steps[i].way_points[0];
-            const wayPoint = wayPoints[startWayPoint];
-            const marker = new Marker([wayPoint[1], wayPoint[0]], {opacity: 0.1});
-            marker.bindTooltip(`Departure Time: ${new Date(this.routingService.departureTime).toTimeString()}`, {offset: [0, 0]});
-            this.timeLayer.addLayer(marker);
+            this.departureMarker.bindTooltip(`Departure Time:
+            ${new Date(this.routingService.departureTime).toTimeString()}`, {offset: [0, 0]});
             continue;
           }
           // @ts-ignore
           if (i === segment.steps.length - 1 && j === routeDetails.properties.segments.length - 1) {
-            const startWayPoint = segment.steps[i].way_points[1];
-            const wayPoint = wayPoints[startWayPoint];
-            const marker = new Marker([wayPoint[1], wayPoint[0]], {opacity: 0.1});
-            marker.bindTooltip(`Time: ${new Date(this.routingService.departureTime + totalDuration * 1000).toTimeString()}<br/>
+            this.destinationMarker.bindTooltip(`Time: ${new Date(this.routingService.departureTime + totalDuration * 1000).toTimeString()}<br/>
           Travel time: ${this.getTimeFromMins(totalDuration / 60)}<br/>
           Distance: ${this.formatDistance(totalDistance / 1000)} km`, {offset: [0, 0]});
-            this.timeLayer.addLayer(marker);
             continue;
           }
           if (i === segment.steps.length - 1) {
-            const startWayPoint = segment.steps[i].way_points[1];
-            const wayPoint = wayPoints[startWayPoint];
-            const marker = new Marker([wayPoint[1], wayPoint[0]], {opacity: 0.1});
-            marker.bindTooltip(`Time: ${new Date(this.routingService.departureTime + currentDuration * 1000).toTimeString()}<br/>
+            this.stationMarkers[j].bindTooltip(`Time: ${new Date(this.routingService.departureTime + currentDuration * 1000).toTimeString()}<br/>
           Travel time: ${this.getTimeFromMins(currentDuration / 60)}<br/>
           Distance: ${this.formatDistance(currentDistance / 1000)} km`, {offset: [0, 0]});
-            this.timeLayer.addLayer(marker);
+            if (currentDuration + this.routingService.averageChargingTime * 60 > timeStep * 3600) {
+              timeStep++;
+            }
             continue;
           }
           // Add a marker. Better overestimate time than underestimate.
           if (currentDuration > timeStep * 3600) {
             const startWayPoint = segment.steps[i].way_points[0];
             const wayPoint = wayPoints[startWayPoint];
-            const icon = new L.icon.fontAwesome({
-              iconClasses: 'fa fa-clock',
-              markerColor: 'grey',
-              markerFillOpacity: 0.3,
-              markerStrokeWidth: 1,
-              markerStrokeColor: 'grey',
-              // icon style
-              iconColor: '#FFF'
-            });
             const marker = new Marker([wayPoint[1], wayPoint[0]], {opacity: 0.5, icon});
             marker.bindTooltip(`Time: ${new Date(this.routingService.departureTime + currentDuration * 1000).toTimeString()}<br/>
           Travel time: ${this.getTimeFromMins(currentDuration / 60)} hour(s)<br/>
           Distance: ${this.formatDistance(currentDistance / 1000)} km`, {offset: [0, 0]});
+
             this.timeLayer.addLayer(marker);
             timeStep++;
           }
@@ -418,7 +424,7 @@ export class MapComponent {
       }
     } else {
       this.map.removeLayer(this.timeLayer);
-      this.timeLayer = new LayerGroup();
+      this.timeLayer = new L.markerClusterGroup();
     }
   }
 
@@ -579,17 +585,20 @@ export class MapComponent {
     this.updateStationsLayer(stationsGeoJSON);
   }
 
+  public showSnackBar(message: string): void {
+    this.snackBarRef.open(message, undefined, {duration: 2000});
+  }
+
   public updateStationsLayer(stationsGeoJSON: GeoJSON | undefined): void {
     if (stationsGeoJSON) {
-      // console.log('add stations markers');
       this.map.removeLayer(this.stationsLayerGroup);
-      this.stationsLayerGroup = new LayerGroup();
+      this.stationsLayerGroup = new L.markerClusterGroup({disableClusteringAtZoom: 11});
       stationsGeoJSON.addTo(this.stationsLayerGroup);
       this.stationsLayerGroup.addTo(this.map);
     } else {
       // console.log('remove all stations markers');
       this.map.removeLayer(this.stationsLayerGroup);
-      this.stationsLayerGroup = new LayerGroup();
+      this.stationsLayerGroup = new L.markerClusterGroup({disableClusteringAtZoom: 11});
     }
   }
 
@@ -665,8 +674,15 @@ export class MapComponent {
       if (restaurants.features === undefined) {
         return;
       }
+
+      const showFeaturedRest = this.showFeat;
+      console.log(showFeaturedRest);
       const restaurantsGeoJSON = new GeoJSON(restaurants, {
         onEachFeature, pointToLayer(geoJsonPoint: Feature, latlng: LatLng): Layer {
+          if (!showFeaturedRest && geoJsonPoint.properties && geoJsonPoint.properties.amenity && geoJsonPoint.properties.amenity === 'rated_restaurant') {
+            // @ts-ignore
+            return;
+          }
           let color = 'black';
           if (geoJsonPoint.properties && geoJsonPoint.properties.rating && geoJsonPoint.properties.rating > 0) {
             color = 'yellow';
@@ -734,11 +750,18 @@ export class MapComponent {
   public addWayPoints(wayPoints: FeatureCollection): void {
     console.log('add way points:', wayPoints);
     const onEachFeature = (feature: Feature<Geometry, any>, layer: Layer) => {
-      if (feature.properties.type === 'Station') {
-        layer.bindPopup(`${feature.properties.type}: ${feature.properties.address}, ${feature.properties.city}`);
-      } else {
-        layer.bindPopup(`${feature.properties.type}: ${feature.properties.name}`);
+      if (feature.properties.type === 'Departure') {
+        this.departureMarker = layer;
+        layer.bindPopup(`${feature.properties.type}`);
+        return;
       }
+      if (feature.properties.type === 'Destination') {
+        this.destinationMarker = layer;
+        layer.bindPopup(`${feature.properties.type}`);
+        return;
+      }
+      this.stationMarkers.push(layer);
+      layer.bindPopup(`${feature.properties.type}: ${feature.properties.address}, ${feature.properties.city}`);
     };
     const wayPointsGeoJSON = new GeoJSON(wayPoints, {
       onEachFeature,

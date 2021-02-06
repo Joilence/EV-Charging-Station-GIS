@@ -1,5 +1,5 @@
 /// <reference types='leaflet-sidebar-v2' />
-import {AfterViewInit, Component, ElementRef, ViewChild} from '@angular/core';
+import {AfterViewInit, ApplicationRef, Component, ElementRef, ViewChild} from '@angular/core';
 import {FeatureCollection, Point} from 'geojson';
 import {MapComponent} from './map/map.component';
 import {DataService} from './services/data.service';
@@ -9,6 +9,8 @@ import * as d3 from 'd3';
 // @ts-ignore
 import {legend} from './map/d3-legend';
 import {MatSnackBar} from '@angular/material/snack-bar';
+import {DialogComponent} from './dialog/dialog.component';
+import {StorageMap} from '@ngx-pwa/local-storage';
 
 @Component({
   selector: 'app-root',
@@ -22,6 +24,7 @@ export class AppComponent implements AfterViewInit {
   public maxZoomHeat = 11;
   public radiusHeat = 10;
 
+
   public sidebarOptions: SidebarOptions = {
     position: 'left',
     autopan: false,
@@ -30,6 +33,9 @@ export class AppComponent implements AfterViewInit {
   };
 
   @ViewChild(MapComponent) mapComponent!: MapComponent;
+
+  @ViewChild(DialogComponent) dialogComponent!: DialogComponent;
+
 
   @ViewChild('inputStartLat', {static: true})
   inputStartLat!: ElementRef;
@@ -58,13 +64,16 @@ export class AppComponent implements AfterViewInit {
   @ViewChild('layerTab', {static: true})
   layerTab!: ElementRef;
 
+  featuredRestaurants = true;
+
   private zeroPad = (num: number, places: number) => String(num).padStart(places, '0');
 
   /*
    * Services or other dependencies are often imported via dependency injection.
    * See https://angular.io/guide/dependency-injection for more details.
    */
-  constructor(private dataService: DataService, private spinnerService: SpinnerOverlayService, private snackBar: MatSnackBar) {
+  constructor(private dataService: DataService, private spinnerService: SpinnerOverlayService, private snackBar: MatSnackBar,
+              private localStorage: StorageMap) {
   }
 
   ngAfterViewInit(): void {
@@ -80,7 +89,7 @@ export class AppComponent implements AfterViewInit {
       title: 'Restaurant score'
     });
     // @ts-ignore
-    document.getElementById('legend-stations').append(node);
+    document.getElementById('legend-restaurant').append(node);
 
     node = legend({
       color: d3.scaleLinear([0, 0.65, 1], ['blue', 'lime', 'red']),
@@ -88,8 +97,20 @@ export class AppComponent implements AfterViewInit {
     });
     // @ts-ignore
     document.getElementById('legend-heatmap').append(node);
+    // this.inputTime.nativeElement.value = new Date().getHours() + ':' + new Date().getMinutes();
+
+    this.localStorage.get('tutorial').subscribe((getTut) => {
+      console.log(getTut);
+      if (getTut === undefined) {
+        this.dialogComponent.startTutorial(0);
+      }
+    });
+
     this.inputTime.nativeElement.value = this.zeroPad(new Date().getHours(), 2) + ':' +
       this.zeroPad(new Date().getMinutes(), 2);
+    setTimeout(() => {
+      this.openSideBar();
+    }, 1000);
   }
 
   settingsChanged(): void {
@@ -183,6 +204,11 @@ export class AppComponent implements AfterViewInit {
     if (this.layerTab.nativeElement.classList.contains('active')) {
       this.layerTab.nativeElement.classList.remove('active');
     }
+  }
+
+  private openSideBar(): void {
+    // @ts-ignore
+    document.getElementById('clickHome').click();
   }
 
   public addHeatMapStationsLayer(): void {

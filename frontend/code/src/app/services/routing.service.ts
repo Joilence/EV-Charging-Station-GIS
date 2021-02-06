@@ -6,12 +6,14 @@ import {map} from 'rxjs/operators';
 import {LatLng, LatLngExpression, Map, Polyline} from 'leaflet';
 // @ts-ignore
 import {extract} from './leaflet-geometryutil.js';
+import {MapComponent} from '../map/map.component';
 
 @Injectable({
   providedIn: 'root',
 })
 export class RoutingService {
   private map!: Map;
+  private mapComponent!: MapComponent;
 
   constructor(private dataService: DataService) {
 
@@ -31,6 +33,10 @@ export class RoutingService {
   public departureTime = new Date().getTime();
   // in minutes
   public averageChargingTime = 45;
+
+  public setMapComponent(mapComponent: MapComponent): void {
+    this.mapComponent = mapComponent;
+  }
 
   public addNewStation(station: Feature<Point>): void {
     if (station.properties) {
@@ -73,7 +79,14 @@ export class RoutingService {
 
   public handleRoute(featureCollection: FeatureCollection, map: Map, maxRange: number, dangerBattery: number): FeatureCollection {
     // console.log('handleRoute:', featureCollection);
-    const wholeRoute = featureCollection.features[0] as Feature;
+    let wholeRoute = null;
+    try {
+      wholeRoute = featureCollection.features[0] as Feature;
+    } catch (e) {
+      this.mapComponent.showSnackBar('Point out of Germany. You are not allowed to leave this country.');
+      // @ts-ignore
+      return null;
+    }
 
     if (wholeRoute.properties) {
       wholeRoute.properties.type = 'Whole Route';
