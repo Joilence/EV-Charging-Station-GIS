@@ -9,6 +9,7 @@ import * as d3 from 'd3';
 // @ts-ignore
 import {legend} from './map/d3-legend';
 import {MatSnackBar} from '@angular/material/snack-bar';
+import { DialogComponent } from './dialog/dialog.component';
 
 @Component({
   selector: 'app-root',
@@ -22,6 +23,7 @@ export class AppComponent implements AfterViewInit {
   public maxZoomHeat = 11;
   public radiusHeat = 10;
 
+
   public sidebarOptions: SidebarOptions = {
     position: 'left',
     autopan: false,
@@ -30,6 +32,9 @@ export class AppComponent implements AfterViewInit {
   };
 
   @ViewChild(MapComponent) mapComponent!: MapComponent;
+
+  @ViewChild(DialogComponent) dialogComponent!: DialogComponent;
+
 
   @ViewChild('inputStartLat', {static: true})
   inputStartLat!: ElementRef;
@@ -65,7 +70,10 @@ export class AppComponent implements AfterViewInit {
    * See https://angular.io/guide/dependency-injection for more details.
    */
   constructor(private dataService: DataService, private spinnerService: SpinnerOverlayService, private snackBar: MatSnackBar) {
+    this.featuredRestaurants = false
+    
   }
+  featuredRestaurants: boolean;
 
   ngAfterViewInit(): void {
     let node = legend({
@@ -88,6 +96,10 @@ export class AppComponent implements AfterViewInit {
     });
     // @ts-ignore
     document.getElementById('legend-heatmap').append(node);
+    // this.inputTime.nativeElement.value = new Date().getHours() + ':' + new Date().getMinutes();
+
+    this.dialogComponent.startTutorial(0);
+
     this.inputTime.nativeElement.value = this.zeroPad(new Date().getHours(), 2) + ':' +
       this.zeroPad(new Date().getMinutes(), 2);
   }
@@ -121,6 +133,11 @@ export class AppComponent implements AfterViewInit {
       fastChargeAmount
     );
   }
+
+  // featuredRestaurants: boolean;
+  // onChange(UpdatedValue : boolean) : void{
+  //   this.featuredRestaurants = UpdatedValue;
+  // }
 
   receiveMap(map: Map): void {
     // This will throw an ExpressionChangedAfterItHasBeenCheckedError error in dev mode. That's okay and not problematic.

@@ -1,5 +1,5 @@
 /// <reference types='leaflet-sidebar-v2' />
-import {Component, EventEmitter, HostListener, Output} from '@angular/core';
+import {Component, EventEmitter, HostListener, Input, Output} from '@angular/core';
 import {Feature, FeatureCollection, Geometry, Point} from 'geojson';
 import {
   Circle,
@@ -35,12 +35,17 @@ declare var L: any;
   templateUrl: './map.component.html',
   styleUrls: ['./map.component.scss'],
 })
+
+
 export class MapComponent {
 
   constructor(private routingService: RoutingService, private mapService: MapService,
               private spinnerService: SpinnerOverlayService, private dataService: DataService) {
     this.mapService.setMapComponent(this);
+    this.showFeat = false;
   }
+
+  @Input() showFeat: boolean;
 
   /**
    *  #######################################################################
@@ -613,8 +618,15 @@ export class MapComponent {
       if (restaurants.features === undefined) {
         return;
       }
+
+      const showFeaturedRest = this.showFeat;
+      console.log(showFeaturedRest);
       const restaurantsGeoJSON = new GeoJSON(restaurants, {
         onEachFeature, pointToLayer(geoJsonPoint: Feature, latlng: LatLng): Layer {
+          if (!showFeaturedRest && geoJsonPoint.properties && geoJsonPoint.properties.amenity && geoJsonPoint.properties.amenity === 'rated_restaurant') {
+            // @ts-ignore
+            return;
+          }
           let color = 'black';
           if (geoJsonPoint.properties && geoJsonPoint.properties.rating && geoJsonPoint.properties.rating > 0) {
             color = 'yellow';
