@@ -610,7 +610,11 @@ export class MapComponent {
     this.removeAllIsochrones();
 
     const onEachFeature = (feature: Feature<Geometry, any>, layer: Layer) => {
-      layer.bindPopup(`${JSON.stringify(feature.properties, null, 2)}`);
+      const popupHtml = `
+      <div>Name: ${feature.properties.name}</div>
+      <div>Type: ${feature.properties.amenity}</div>`;
+      // layer.bindPopup(`${JSON.stringify(feature.properties, null, 2)}`);
+      layer.bindPopup(popupHtml);
       // TODO on click
     };
 

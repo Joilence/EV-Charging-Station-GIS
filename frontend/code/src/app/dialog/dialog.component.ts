@@ -86,7 +86,8 @@ export class DialogComponent {
           title: 'Feel hungry yet?',
           body: [
             'Charging an EV can require time. Why don\'t use it for a lunch break?',
-            'Here you have all the restaurants, pubs, bars and cafe at a walking distance from the selected station. Hover on the icons to have more information and start thinking about what to order...',
+            'Here you have all the restaurants, pubs, bars and cafe at a walking distance from the selected station.',
+            'Hover on the icons to have more information and start thinking about what to order...',
             'Tip: The yellow icons are Featured Restaurants, recommended by the Michelin Guide. A good choice if you are looking for a luxury break.',
             'Tip Tip: Don\'t drink and drive! The map also shows Biergartens, but only for the passengers...'
           ],
@@ -104,34 +105,48 @@ export class DialogComponent {
             'Click outside of the circle to go back to the stations and keep exploring the area.',
             'Once you have made your choice, click Select station: the route will be updated with the deroute to the selected station. ',
             'Repeat the station selection until all the route becomes green.',
-            'Tip: When selecting a station, indicate whether you want to stop for a full or a fast charge (80%). This will help us update the travel time and show when the next charge stop is needed.'
+            'Tip: When selecting a station, indicate whether you want to stop for a full or a fast charge (80%).',
+            'This will help us update the travel time and show when the next charge stop is needed.'
           ],
           img: 'assets/arrival.png',
           button1: 'Prev',
-          button2: null,
-          button3: 'Finish',
+          button2: 'Next',
+          button3: null,
           index
         };
         break;
       case 6:
         dialogRef.componentInstance.content = {
-          title: 'End of tutorial',
-          body: [],
-          img: null,
+          title: 'Safe places',
+          body: [
+            'Some areas might not provide many charging stations yet. It is better to know in advance!',
+            'Click on the sidebar icon and show the Heatmap.',
+            'You can keep it visible during your journey planning, it can be a useful tool to decide where to travel.'
+        ],
+          img: 'assets/heatmap.png',
           button1: 'Prev',
           button2: 'Next',
           button3: null,
           index
         };
         break;
-      case 3:
+      case 7:
         dialogRef.componentInstance.content = {
-          title: 'Tut',
-          body: [],
-          img: null,
+          title: 'Advanced Options',
+          body: [
+            "Try out the advanced tab if you want to customize your experience with the app.",
+            "Isochrone Max Range indicates the maximum deroute (in meter) from the road to a charging station.",
+            "The Amenity Distance field indicates the maximum distance from a station to a possible restaurant.",
+            "Keep this value low if you don't want to walk much while your car is on charge!",
+            "Please check your car's battery to know the exact percentage you can achieve with fast charge.",
+            "This value is used to calculate driving time and danger segments (low battery).",
+            "Last, click anytime on Show Tutorial to watch these instructions again.",
+            "Have fun!"
+          ],
+          img: 'assets/advanced.png',
           button1: 'Prev',
-          button2: 'Next',
-          button3: null,
+          button2: null,
+          button3: "Finish",
           index
         };
         break;
