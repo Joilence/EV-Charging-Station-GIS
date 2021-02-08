@@ -240,7 +240,8 @@ def queryStations(routepoint, distance):
     iso = getIsochrones(params)["features"][0]["geometry"]
     # return iso
     query= f"""
-    SELECT objectid, adresse, postleitzahl_ort, x, y, ST_AsText(geom) as geom
+    SELECT objectid, adresse, postleitzahl_ort, x, y, ST_AsText(geom) as geom,
+        art_der_ladeeinrichtung as chargeType
     FROM charging_stations cs 
     WHERE ST_CONTAINS(st_geomfromgeojson('{json.dumps(iso)}'), cs.geom)
     """
@@ -259,7 +260,9 @@ def parseStations(queryResults):
                 "address": s["adresse"],
                 "city": s["postleitzahl_ort"],
                 "lat": s["y"],
-                "lng": s["x"]
+                "lng": s["x"],
+                "chargeType": s["chargetype"]
+                # ,"plugType": s["plugType"]
             },
             "geometry": {
                 "type": "Point",

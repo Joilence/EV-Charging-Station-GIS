@@ -485,6 +485,7 @@ export class MapComponent {
     const onEachFeature = (feature: Feature<Geometry, any>, layer: L.Layer) => {
       const popupHtml = `
         <div>${feature.properties.type}: ${feature.properties.address}; ${feature.id}<br/>
+          Charge Type: ${feature.properties.chargeType}<br/>
             <button id="1-${feature.id}" type="button" class="text-center w-100 mt-3 btn btn-secondary station-selected-click">
                     Select station (full charge)
             </button>
@@ -656,6 +657,7 @@ export class MapComponent {
 
       const popupHtml = `
         <div>${station.properties.type}: ${station.properties.address}; ${station.id}<br/>
+            Charge Type: ${station.properties.chargeType}<br/>
             <button id="1-${station.id}" type="button" class="text-center w-100 mt-3 btn btn-secondary station-selected-click">
                     Select station
             </button>
