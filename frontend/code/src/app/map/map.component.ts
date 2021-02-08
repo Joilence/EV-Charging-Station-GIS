@@ -235,15 +235,24 @@ export class MapComponent {
             
             // const lastWayPointLatLng = new LatLng(lastWayPointLocation[1], lastWayPointLocation[0])
             this.dataService.getRoute('driving-car', [lastWayPointLocation, [loc.lng, loc.lat]]).subscribe((route: FeatureCollection) => {
-              // console.log('route of click and departure:', route);
+              console.log('route of click and departure:', route);
               // TODO: danger segments not accurate
-              const distance = route.features[0].properties!.summary.distance * 0.9;
-              if (distance >= this.routingService.maxRange) {
+              const distance = route.features[0].properties!.summary.distance * 0.95;
+              console.log('Distance to last way point:', distance)
+              let maxDistance = 0;
+              if (this.routingService.wayPoints.features.length === 2) {
+                maxDistance = this.routingService.startRange;
+              } else {
+                maxDistance = this.routingService.maxRange;
+              }
+              if (distance >= maxDistance) {
                 this.showSnackBar(`Sorry. Too far away, not reachable. Distance from last point: ${distance}`)
               } else {
                 // TODO: decide max isochrones for searching stations
+                console.log('initial search range:', maxDistance - distance);
+                console.log('max search range:', this.routingService.maxStationSearchRange);
                 this.selectDropPoint([loc.lng, loc.lat] ,
-                                     Math.min(this.routingService.maxRange - distance,
+                                     Math.min(maxDistance - distance,
                                               this.routingService.maxStationSearchRange));
               }
             });
