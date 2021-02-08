@@ -338,7 +338,12 @@ export class MapComponent {
     this.routeLayerGroup = new LayerGroup();
     routeGeoJSON.addTo(this.routeLayerGroup);
     this.routeLayerGroup.addTo(this.map);
-    this.map.fitBounds(routeGeoJSON.getBounds(), {padding: [50, 50]});
+    try {
+      this.map.fitBounds(routeGeoJSON.getBounds(), {padding: [50, 50]});
+    } catch (e) {
+      this.clearMap();
+      return;
+    }
     this.addWayPoints(this.routingService.getCurrentWayPoints());
   }
 
