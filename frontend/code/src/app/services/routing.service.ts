@@ -27,7 +27,7 @@ export class RoutingService {
   public startRange = 300000;
   public dangerBattery = 0.2;
   public amenityRange = 1000;
-  public maxStationSearchRange = 20000;
+  public maxStationSearchRange = 30000;
   public fastCharge = false;
   public fastChargeAmount = 0.8;
   public departureTime = new Date().getTime();
