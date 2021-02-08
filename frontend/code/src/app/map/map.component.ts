@@ -178,10 +178,7 @@ export class MapComponent {
     // });
     this.dataService.getStationsScore([location], [range], this.routingService.amenityRange).subscribe((stations: FeatureCollection<Point>) => {
       if (stations.features.length === 0) {
-        new Popup()
-          .setLatLng([location[1], location[0]])
-          .setContent('<p>Sorry, there is no station T_T</p>')
-          .openOn(this.map);
+        this.showSnackBar('Sorry, there is no station. Please choose another area.')
         this.spinnerService.hide();
       } else {
         this.spinnerService.hide();
@@ -242,10 +239,7 @@ export class MapComponent {
               // TODO: danger segments not accurate
               const distance = route.features[0].properties!.summary.distance * 0.9;
               if (distance >= this.routingService.maxRange) {
-                new Popup()
-                .setLatLng(loc)
-                .setContent(`Sorry. Too far away, not reachable.<br /> distance from last point ${distance}`)
-                .openOn(this.map);
+                this.showSnackBar(`Sorry. Too far away, not reachable. Distance from last point: ${distance}`)
               } else {
                 // TODO: decide max isochrones for searching stations
                 this.selectDropPoint([loc.lng, loc.lat] ,
