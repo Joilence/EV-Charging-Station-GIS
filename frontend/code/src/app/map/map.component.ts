@@ -658,9 +658,16 @@ export class MapComponent {
     this.removeAllIsochrones();
 
     const onEachFeature = (feature: Feature<Geometry, any>, layer: Layer) => {
+      let amenityType = feature.properties.amenity;
+      amenityType = amenityType.replace('_', ' ');
+      amenityType = amenityType
+        .toLowerCase()
+        .split(' ')
+        .map((word: string) => word.charAt(0).toUpperCase() + word.slice(1))
+        .join(' ');
       const popupHtml = `
       <div>Name: ${feature.properties.name}</div>
-      <div>Type: ${feature.properties.amenity}</div>`;
+      <div>Type: ${amenityType}</div>`;
       // layer.bindPopup(`${JSON.stringify(feature.properties, null, 2)}`);
       layer.bindPopup(popupHtml);
       // TODO on click
