@@ -27,6 +27,7 @@ export class RoutingService {
   public startRange = 300000;
   public dangerBattery = 0.2;
   public amenityRange = 1000;
+  public maxStationSearchRange = 30000;
   public fastCharge = false;
   public fastChargeAmount = 0.8;
   public departureTime = new Date().getTime();
@@ -155,7 +156,11 @@ export class RoutingService {
     // console.log('extract locations for getCurrentRoute():', locations);
     const routeObs = this.dataService.getRoute('driving-car', locations);
     // console.log('route:', route);
-    return routeObs.pipe(map((routes) => this.handleRoute(routes, this.map, this.maxRange, this.dangerBattery)));
+    if (this.wayPoints.features.length === 2) {
+      return routeObs.pipe(map((routes) => this.handleRoute(routes, this.map, this.startRange, this.dangerBattery)));
+    } else {
+      return routeObs.pipe(map((routes) => this.handleRoute(routes, this.map, this.maxRange, this.dangerBattery)));
+    }
   }
 
   public getCurrentWayPoints(): FeatureCollection<Point> {
