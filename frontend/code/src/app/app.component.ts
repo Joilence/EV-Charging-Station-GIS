@@ -1,5 +1,5 @@
 /// <reference types='leaflet-sidebar-v2' />
-import {AfterViewInit, ApplicationRef, Component, ElementRef, ViewChild} from '@angular/core';
+import {AfterViewInit, ApplicationRef, Component, ElementRef, NgZone, ViewChild} from '@angular/core';
 import {FeatureCollection, Point} from 'geojson';
 import {MapComponent} from './map/map.component';
 import {DataService} from './services/data.service';
@@ -73,7 +73,7 @@ export class AppComponent implements AfterViewInit {
    * See https://angular.io/guide/dependency-injection for more details.
    */
   constructor(private dataService: DataService, private spinnerService: SpinnerOverlayService, private snackBar: MatSnackBar,
-              private localStorage: StorageMap) {
+              private localStorage: StorageMap, private zone: NgZone) {
   }
 
   ngAfterViewInit(): void {
@@ -119,20 +119,17 @@ export class AppComponent implements AfterViewInit {
       // Use default value.
       fastChargeAmount = 0.8;
       this.inputFastChargeAmount.nativeElement.value = fastChargeAmount;
-      this.snackBar.open('Invalid value entered for fast charge amount. Resetting to default.', undefined,
-        {duration: 2000});
+      this.showSnackBar('Invalid value entered for fast charge amount. Resetting to default.');
     }
     let maxRange = parseInt(this.inputMaxRange.nativeElement.value, 10);
     let amenityRange = parseInt(this.inputAmenityRange.nativeElement.value, 10);
     if (maxRange <= 0) {
-      this.snackBar.open('Invalid value entered for max range. Resetting to default.', undefined,
-        {duration: 2000});
+      this.showSnackBar('Invalid value entered for max range. Resetting to default.');
       maxRange = 20000;
       this.inputMaxRange.nativeElement.value = maxRange;
     }
     if (amenityRange <= 0) {
-      this.snackBar.open('Invalid value entered for max range. Resetting to default.', undefined,
-        {duration: 2000});
+      this.showSnackBar('Invalid value entered for max range. Resetting to default.');
       amenityRange = 1000;
       this.inputAmenityRange.nativeElement.value = amenityRange;
     }
@@ -209,6 +206,12 @@ export class AppComponent implements AfterViewInit {
   private openSideBar(): void {
     // @ts-ignore
     document.getElementById('clickHome').click();
+  }
+
+  private showSnackBar(message: string): void {
+    this.zone.run(() => {
+      this.snackBar.open(message, undefined, {duration: 2000});
+    });
   }
 
   public addHeatMapStationsLayer(): void {
