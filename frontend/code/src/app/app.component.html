@@ -1,6 +1,6 @@
 <div id="app">
   <app-map (map$)="receiveMap($event)" [showFeat]="featuredRestaurants"></app-map>
-  <app-dialog></app-dialog>
+  <app-dialog class="d-none"></app-dialog>
   <leaflet-sidebar-control [map]="map" [options]="sidebarOptions"></leaflet-sidebar-control>
   <div id="sidebar" #sidebar class="leaflet-sidebar collapsed">
     <!-- Nav tabs -->
