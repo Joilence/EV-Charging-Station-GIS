@@ -71,7 +71,7 @@ export class DialogComponent {
           title: 'Choice overload: solved. ',
           body: [
             'You want to stop around Stuttgard but..where exactly?',
-            'There are more than 12K stations in out database, and in many areas this can be overwhelming. Colors will help you through the choice.',
+            'There are more than 12K stations in our database, and in many areas this can be overwhelming. Colors will help you through the choice.',
             'A green icon means lot of attractivity: start selecting one of them and click "Show Restaurants".'
           ],
           img: 'assets/isochrone.png',
@@ -154,7 +154,9 @@ export class DialogComponent {
         dialogRef.componentInstance.content = {
           title: 'Welcome to JED!',
           body: ['Are you ready to travel with us through Germany with your Electric Vehicle?',
-            'If it is your first time here, follow this tutorial.',
+            'We will help you find the best places to stop for a charge during your journey.',
+            'More than 12K available charging stations are ranked according to nearby activities:', 'how do you want to spend your time while your car is charging?',
+            'If it is your first time here, follow this tutorial to learn more.',
             'Happy Routing!'
           ],
           img: null,
