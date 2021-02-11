@@ -269,12 +269,11 @@ export class MapComponent {
     });
 
     this.map.on('mousemove', (e: LeafletMouseEvent) => {
+      // clear last hover state
+      this.clearHover();
       if (e !== null && e.originalEvent !== null && e.originalEvent.target !== null && e.originalEvent.target instanceof Element) {
         if ((e.originalEvent.target as Element).id === 'map') {
           const loc = e.latlng;
-
-          // clear last hover state
-          this.clearHover();
 
           if (this.isInCurrentIsochrone(loc.lng, loc.lat)) {
             return;
@@ -1121,7 +1120,7 @@ export class MapComponent {
       this.zone.run(() => {
         const dialogRef = this.dialog.open(DialogComponent, {autoFocus: false});
         dialogRef.componentInstance.content = {
-          title: '🥳 Congrads!',
+          title: '🥳 Congrats!',
           body: ['Now you can safely reach your destination! Have a nice journey! 🎉'],
           img: null,
           button1: null,
