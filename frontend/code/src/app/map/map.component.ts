@@ -269,75 +269,79 @@ export class MapComponent {
     });
 
     this.map.on('mousemove', (e: LeafletMouseEvent) => {
-      const loc = e.latlng;
+      if (e !== null && e.originalEvent !== null && e.originalEvent.target !== null && e.originalEvent.target instanceof Element) {
+        if ((e.originalEvent.target as Element).id === 'map') {
+          const loc = e.latlng;
 
-      // clear last hover state
-      this.clearHover();
+          // clear last hover state
+          this.clearHover();
 
-      if (this.isInCurrentIsochrone(loc.lng, loc.lat)) {
-        return;
-      }
+          if (this.isInCurrentIsochrone(loc.lng, loc.lat)) {
+            return;
+          }
 
-      // start count again
-      this.hoverThread = setTimeout(() => {
-        const loc = e.latlng;
-        console.log('stop at:', e.latlng);
-        this.hoverSubscriptionRoute = this.dataService.getRoute('driving-car', [lastWayPointLocation, [loc.lng, loc.lat]])
-          .subscribe((route: FeatureCollection) => {
-            if (this.hoverCircle) {
-              this.map.removeLayer(this.hoverCircle);
-            }
-            if (this.hoverEffect) {
-              this.map.removeLayer(this.hoverEffect);
-            }
-            // console.log('route of click and departure:', route);
-            // TODO: danger segments not accurate
+          // start count again
+          this.hoverThread = setTimeout(() => {
+            const loc = e.latlng;
+            console.log('stop at:', e.latlng);
+            this.hoverSubscriptionRoute = this.dataService.getRoute('driving-car', [lastWayPointLocation, [loc.lng, loc.lat]])
+              .subscribe((route: FeatureCollection) => {
+                if (this.hoverCircle) {
+                  this.map.removeLayer(this.hoverCircle);
+                }
+                if (this.hoverEffect) {
+                  this.map.removeLayer(this.hoverEffect);
+                }
+                // console.log('route of click and departure:', route);
+                // TODO: danger segments not accurate
 
-            const distance = route.features[0].properties!.summary.distance;
-            const maxDistance = this.currentMaxDistance();
-            if (distance <= maxDistance) {
-              const restDistance = Math.min(maxDistance - distance, this.routingService.maxStationSearchRange);
+                const distance = route.features[0].properties!.summary.distance;
+                const maxDistance = this.currentMaxDistance();
+                if (distance <= maxDistance) {
+                  const restDistance = Math.min(maxDistance - distance, this.routingService.maxStationSearchRange);
 
-              // Option 1: show circle
-              // const metresPerPixel = 40075016.686 * Math.abs(Math.cos(this.map.getCenter().lat * Math.PI/180)) / Math.pow(2, this.map.getZoom()+8);
-              // const r = restDistance / metresPerPixel;
-              // this.hoverCircle = new Circle(loc, {radius: r*200}).addTo(this.map);
+                  // Option 1: show circle
+                  // const metresPerPixel = 40075016.686 * Math.abs(Math.cos(this.map.getCenter().lat * Math.PI/180)) / Math.pow(2, this.map.getZoom()+8);
+                  // const r = restDistance / metresPerPixel;
+                  // this.hoverCircle = new Circle(loc, {radius: r*200}).addTo(this.map);
 
-              // Option 2: show isochrone
-              this.dataService.getIsochrones([[loc.lng, loc.lat]], 'distance', [restDistance]).subscribe((isochrones: FeatureCollection<Polygon>) => {
-                this.hoverEffect = new LayerGroup();
+                  // Option 2: show isochrone
+                  this.dataService.getIsochrones([[loc.lng, loc.lat]], 'distance', [restDistance]).subscribe((isochrones: FeatureCollection<Polygon>) => {
+                    this.hoverEffect = new LayerGroup();
 
-                const isochronesJSON = new GeoJSON(isochrones);
-                isochronesJSON.addTo(this.hoverEffect);
-                // Option 3: show route
-                const routeGeoJSON = new GeoJSON(route, {
-                  style: {
-                    color: '#000000',
-                    weight: 8,
-                    opacity: 0.2
-                  },
-                });
-                routeGeoJSON.addTo(this.hoverEffect);
+                    const isochronesJSON = new GeoJSON(isochrones);
+                    isochronesJSON.addTo(this.hoverEffect);
+                    // Option 3: show route
+                    const routeGeoJSON = new GeoJSON(route, {
+                      style: {
+                        color: '#000000',
+                        weight: 8,
+                        opacity: 0.2
+                      },
+                    });
+                    routeGeoJSON.addTo(this.hoverEffect);
 
-                this.hoverEffect.addTo(this.map);
+                    this.hoverEffect.addTo(this.map);
 
-                this.localStorage.get('hover-hint').subscribe((hoverHint) => {
-                  console.log(hoverHint);
-                  if (hoverHint === undefined) {
-                    this.showHoverHintDialog();
-                  }
-                  this.localStorage.has('hover-hint').subscribe((hoverHint) => {
-                    if (!hoverHint) {
-                      this.localStorage.set('hover-hint', true).subscribe();
-                    }
+                    this.localStorage.get('hover-hint').subscribe((hoverHint) => {
+                      console.log(hoverHint);
+                      if (hoverHint === undefined) {
+                        this.showHoverHintDialog();
+                      }
+                      this.localStorage.has('hover-hint').subscribe((hoverHint) => {
+                        if (!hoverHint) {
+                          this.localStorage.set('hover-hint', true).subscribe();
+                        }
+                      });
+                    });
                   });
-                });
+                } else {
+                  this.showSnackBar(`😰 Sorry, too far away and not reachable. Please select a closer point.`, 3000);
+                }
               });
-            } else {
-              this.showSnackBar(`😰 Sorry, too far away and not reachable. Please select a closer point.`, 3000);
-            }
-          });
-      }, this.hoverTimeout);
+          }, this.hoverTimeout);
+        }
+      }
     });
   }
 
@@ -1084,7 +1088,7 @@ export class MapComponent {
         dialogRef.componentInstance.content = {
           title: '🥳 You just discovered the reachable area!',
           body: ['You can look for charge stations in that area.',
-                 'Now try stay somewhere again and click there to see what is there! 😉'],
+            'Now try stay somewhere again and click there to see what is there! 😉'],
           img: null,
           button1: null,
           button2: null,
