@@ -1,13 +1,13 @@
 /// <reference types='leaflet-sidebar-v2' />
 import {Component, EventEmitter, HostListener, Input, NgZone, Output} from '@angular/core';
 import {Feature, FeatureCollection, Geometry, Point} from 'geojson';
-import {Circle, GeoJSON, Icon, LatLng, latLng, LatLngTuple, Layer, LayerGroup, LeafletMouseEvent, Map, Marker, TileLayer,} from 'leaflet';
+import {Circle, GeoJSON, Icon, LatLng, latLng, LatLngTuple, Layer, LayerGroup, LeafletMouseEvent, Map, Marker, TileLayer} from 'leaflet';
 import 'leaflet.heat/dist/leaflet-heat';
 import {RoutingService} from '../services/routing.service';
 import {DataService} from '../services/data.service';
-import {Observable} from 'rxjs';
 import {MapService} from '../services/map.service';
 import {SpinnerOverlayService} from '../services/spinner-overlay.service';
+import {Observable, Subscription} from 'rxjs';
 import 'd3';
 import * as d3 from 'd3';
 import '../../../node_modules/leaflet-fa-markers/L.Icon.FontAwesome';
@@ -18,6 +18,9 @@ import * as turf from '@turf/turf';
 import {Polygon} from '@turf/turf';
 import {MatSnackBar} from '@angular/material/snack-bar';
 import '../../../node_modules/leaflet.markercluster/dist/leaflet.markercluster';
+import {StorageMap} from '@ngx-pwa/local-storage';
+import {MatDialog} from '@angular/material/dialog';
+import {DialogComponent} from '../dialog/dialog.component';
 
 declare var L: any;
 
@@ -32,7 +35,7 @@ export class MapComponent {
 
   constructor(private routingService: RoutingService, private mapService: MapService,
               private spinnerService: SpinnerOverlayService, private dataService: DataService,
-              private snackBarRef: MatSnackBar, private zone: NgZone) {
+              private snackBarRef: MatSnackBar, private zone: NgZone, private localStorage: StorageMap, public dialog: MatDialog) {
     this.mapService.setMapComponent(this);
     this.routingService.setMapComponent(this);
     this.showFeat = false;
@@ -48,12 +51,13 @@ export class MapComponent {
 
   @Output() map$: EventEmitter<Map> = new EventEmitter();
   public map!: Map;
+
+  // Route Layers
   private routeLayerGroup: LayerGroup = new LayerGroup();
   private wayPointsLayerGroup: LayerGroup = new LayerGroup();
   private stationsLayerGroup: LayerGroup = new LayerGroup();
   private isochronesLayerGroup: LayerGroup = new LayerGroup();
   private restaurantsLayerGroup: LayerGroup = new LayerGroup();
-  private hoverCircle?: Circle;
   private timeLayer: LayerGroup = new LayerGroup();
 
   private layers: Layer[] = [];
@@ -62,6 +66,14 @@ export class MapComponent {
   private departureMarker!: Layer;
 
   private stationMarkers!: Array<Layer>;
+
+  // Hove Members
+  private hoverCircle?: Circle;
+  private hoverEffect?: LayerGroup;
+  private hoverTimeout = 500;
+  private hoverThread?: ReturnType<typeof setTimeout>;
+  private hoverSubscriptionRoute?: Subscription;
+  private hoverSubscriptionIsochrone?: Subscription;
 
   options = {
     layers: [
@@ -74,6 +86,7 @@ export class MapComponent {
     center: latLng(48.13, 8.20)
   };
 
+  // Cache
   public isochronesCache?: FeatureCollection<Polygon>;
   public stationsFeatureCollectionCache?: FeatureCollection<Point>;
   public restaurantsOfStations: { [id: string]: Array<Feature>; } = {};
@@ -128,6 +141,8 @@ export class MapComponent {
 
   public route(): void {
     this.map.off('click');
+    this.map.off('mousemove');
+    this.clearHover();
     this.addRoutePath(this.routingService.getCurrentRoute());
   }
 
@@ -153,6 +168,7 @@ export class MapComponent {
     this.removeAllIsochrones();
     this.removeAllRestaurants();
     this.cleanCache();
+    this.clearHover();
     this.spinnerService.show('searching for stations...');
     this.dataService.getIsochrones([location], 'distance', [range]).subscribe((isochrones: FeatureCollection<Polygon>) => {
       this.isochronesCache = isochrones;
@@ -165,7 +181,7 @@ export class MapComponent {
       .subscribe((stations: FeatureCollection<Point>) => {
         if (stations.features.length === 0) {
           this.spinnerService.hide();
-          this.showSnackBar('Sorry, there is no station. Please choose another area.');
+          this.showSnackBar('🤯 Sorry, there is no station. Please choose another area.', 3000);
         } else {
           this.spinnerService.hide();
           this.stationsFeatureCollectionCache = stations;
@@ -174,6 +190,18 @@ export class MapComponent {
           // console.log('caching stations: cache:', this.stationsFeatureCollectionCache);
           // console.log('caching stations: cache as FeatureCollection:', this.stationsFeatureCollectionCache as FeatureCollection);
           this.updateRestaurantCache(stations);
+
+          this.localStorage.get('station-hint').subscribe((stationHint) => {
+            console.log(stationHint);
+            if (stationHint === undefined) {
+              this.showStationHintDialog();
+            }
+            this.localStorage.has('station-hint').subscribe((stationHint) => {
+              if (!stationHint) {
+                this.localStorage.set('station-hint', true).subscribe();
+              }
+            });
+          });
         }
       });
   }
@@ -192,6 +220,17 @@ export class MapComponent {
     // console.log('selectStation: add station to selection:', station);
     this.routingService.addNewStation(station);
     this.route();
+    this.localStorage.get('reroute-hint').subscribe((rerouteHint) => {
+      console.log(rerouteHint);
+      if (rerouteHint === undefined) {
+        this.showReRouteHintDialog();
+      }
+      this.localStorage.has('reroute-hint').subscribe((rerouteHint) => {
+        if (!rerouteHint) {
+          this.localStorage.set('reroute-hint', true).subscribe();
+        }
+      });
+    });
   }
 
   /**
@@ -200,83 +239,130 @@ export class MapComponent {
    *  #######################################################################
    */
 
+  public bindInteractiveMapEventListener(): void {
+    const wayPoints = this.routingService.getCurrentWayPoints().features;
+    const lastWayPointLocation = wayPoints[wayPoints.length - 2].geometry.coordinates;
+    this.map.on('click', (e: LeafletMouseEvent) => {
+      const loc = e.latlng;
+      if (this.isInCurrentIsochrone(loc.lng, loc.lat)) {
+        return;
+      }
+
+      this.clearHover();
+      // const lastWayPointLatLng = new LatLng(lastWayPointLocation[1], lastWayPointLocation[0])
+      this.dataService.getRoute('driving-car', [lastWayPointLocation, [loc.lng, loc.lat]]).subscribe((route: FeatureCollection) => {
+        console.log('route of click and departure:', route);
+        // TODO: danger segments not accurate
+        const distance = route.features[0].properties!.summary.distance;
+        console.log('Distance to last way point:', distance);
+        const maxDistance = this.currentMaxDistance();
+        if (distance >= maxDistance) {
+          this.showSnackBar(`😰 Sorry, too far away and not reachable. Please select a closer point.`, 2000);
+        } else {
+          console.log('initial search range:', maxDistance - distance);
+          console.log('max search range:', this.routingService.maxStationSearchRange);
+          this.selectDropPoint([loc.lng, loc.lat],
+            Math.min(maxDistance - distance,
+              this.routingService.maxStationSearchRange));
+        }
+      });
+    });
+
+    this.map.on('mousemove', (e: LeafletMouseEvent) => {
+      // clear last hover state
+      this.clearHover();
+      if (e !== null && e.originalEvent !== null && e.originalEvent.target !== null && e.originalEvent.target instanceof Element) {
+        if ((e.originalEvent.target as Element).id === 'map') {
+          const loc = e.latlng;
+
+          if (this.isInCurrentIsochrone(loc.lng, loc.lat)) {
+            return;
+          }
+
+          // start count again
+          this.hoverThread = setTimeout(() => {
+            const loc = e.latlng;
+            console.log('stop at:', e.latlng);
+            this.hoverSubscriptionRoute = this.dataService.getRoute('driving-car', [lastWayPointLocation, [loc.lng, loc.lat]])
+              .subscribe((route: FeatureCollection) => {
+                if (this.hoverCircle) {
+                  this.map.removeLayer(this.hoverCircle);
+                }
+                if (this.hoverEffect) {
+                  this.map.removeLayer(this.hoverEffect);
+                }
+                // console.log('route of click and departure:', route);
+                // TODO: danger segments not accurate
+
+                const distance = route.features[0].properties!.summary.distance;
+                const maxDistance = this.currentMaxDistance();
+                if (distance <= maxDistance) {
+                  const restDistance = Math.min(maxDistance - distance, this.routingService.maxStationSearchRange);
+
+                  // Option 1: show circle
+                  // const metresPerPixel = 40075016.686 * Math.abs(Math.cos(this.map.getCenter().lat * Math.PI/180)) / Math.pow(2, this.map.getZoom()+8);
+                  // const r = restDistance / metresPerPixel;
+                  // this.hoverCircle = new Circle(loc, {radius: r*200}).addTo(this.map);
+
+                  // Option 2: show isochrone
+                  this.dataService.getIsochrones([[loc.lng, loc.lat]], 'distance', [restDistance]).subscribe((isochrones: FeatureCollection<Polygon>) => {
+                    this.hoverEffect = new LayerGroup();
+
+                    const isochronesJSON = new GeoJSON(isochrones);
+                    isochronesJSON.addTo(this.hoverEffect);
+                    // Option 3: show route
+                    const routeGeoJSON = new GeoJSON(route, {
+                      style: {
+                        color: '#000000',
+                        weight: 8,
+                        opacity: 0.2
+                      },
+                    });
+                    routeGeoJSON.addTo(this.hoverEffect);
+
+                    this.hoverEffect.addTo(this.map);
+
+                    this.localStorage.get('hover-hint').subscribe((hoverHint) => {
+                      console.log(hoverHint);
+                      if (hoverHint === undefined) {
+                        this.showHoverHintDialog();
+                      }
+                      this.localStorage.has('hover-hint').subscribe((hoverHint) => {
+                        if (!hoverHint) {
+                          this.localStorage.set('hover-hint', true).subscribe();
+                        }
+                      });
+                    });
+                  });
+                } else {
+                  this.showSnackBar(`😰 Sorry, too far away and not reachable. Please select a closer point.`, 3000);
+                }
+              });
+          }, this.hoverTimeout);
+        }
+      }
+    });
+  }
+
+  public unbindInteractiveMapEventListener(): void {
+    this.map.off('click');
+    this.map.off('mousemove');
+  }
+
   public addRoutePath(routeObs: Observable<FeatureCollection>): void {
     routeObs.subscribe((route: FeatureCollection) => {
       // console.log('addRoutePath: processed route', route);
-
+      let isDanger = false;
       for (const path of route.features) {
         if (path.properties!.type === 'Danger Segment') {
-          const wayPoints = this.routingService.getCurrentWayPoints().features;
-          const lastWayPointLocation = wayPoints[wayPoints.length - 2].geometry.coordinates;
-          this.map.on('click', (e: LeafletMouseEvent) => {
-            const loc = e.latlng;
-            if (this.isochronesCache) {
-              const polygon = turf.polygon(this.isochronesCache.features[0].geometry.coordinates);
-              const point = turf.point([loc.lng, loc.lat]);
-              if (turf.booleanContains(polygon, point)) {
-                console.log('click inside isochrones');
-                return;
-              }
-            }
-
-            // const lastWayPointLatLng = new LatLng(lastWayPointLocation[1], lastWayPointLocation[0])
-            this.dataService.getRoute('driving-car', [lastWayPointLocation, [loc.lng, loc.lat]]).subscribe((route: FeatureCollection) => {
-              console.log('route of click and departure:', route);
-              // TODO: danger segments not accurate
-              const distance = route.features[0].properties!.summary.distance * 0.95;
-              console.log('Distance to last way point:', distance);
-              let maxDistance = 0;
-              if (this.routingService.wayPoints.features.length === 2) {
-                maxDistance = this.routingService.startRange;
-              } else {
-                maxDistance = this.routingService.maxRange;
-              }
-              if (distance >= maxDistance) {
-                this.showSnackBar(`Sorry, too far away and not reachable. Please select a closer point.`);
-              } else {
-                console.log('initial search range:', maxDistance - distance);
-                console.log('max search range:', this.routingService.maxStationSearchRange);
-                this.selectDropPoint([loc.lng, loc.lat],
-                  Math.min(maxDistance - distance,
-                    this.routingService.maxStationSearchRange));
-              }
-            });
-          });
-
-          this.map.on('mousemove', (e: LeafletMouseEvent) => {
-            if (this.hoverCircle) {
-              this.map.removeLayer(this.hoverCircle);
-            }
-            const loc = e.latlng;
-
-            // TODO: Using dataservice would cause lagging
-            // this.dataService.getRoute('driving-car', [lastWayPointLocation, [loc.lng, loc.lat]]).subscribe((route: FeatureCollection) => {
-            //   // console.log('route of click and departure:', route);
-            //   // TODO: danger segments not accurate
-            //   const distance = route.features[0].properties!.summary.distance;
-            //   if (distance <= this.routingService.maxRange) {
-            //     const metresPerPixel = 40075016.686 * Math.abs(Math.cos(this.map.getCenter().lat * Math.PI/180)) / Math.pow(2, this.map.getZoom()+8);
-            //     const restDistance = this.routingService.maxRange - distance;
-            //     const r = restDistance / metresPerPixel;
-            //     this.hoverCircle = new Circle(loc, {radius: r*200}).addTo(this.map);
-            //   }
-            // });
-
-            // TODO: pixel is not accurate
-            // const distance = loc.distanceTo([lastWayPointLocation[1], lastWayPointLocation[0]]);
-            // const locPoint = this.map.latLngToLayerPoint(loc);
-            // const lastPoint = this.map.latLngToLayerPoint([lastWayPointLocation[1], lastWayPointLocation[0]]);
-            // const pixelDistance = locPoint.distanceTo(lastPoint);
-            // const metresPerPixel = 40075016.686 * Math.abs(Math.cos(this.map.getCenter().lat * Math.PI/180)) / Math.pow(2, this.map.getZoom()+8);
-            // const pixelMaxRange = this.routingService.maxRange / metresPerPixel;
-            // console.log(`loc in point ${locPoint}\nlast in point ${lastPoint}\npixel distance ${pixelDistance}`);
-            // // maxRange * 0.6: add tolerance for euclidean distance
-            // if (distance <= this.routingService.maxRange * 0.6) {
-            //   const r = pixelMaxRange - pixelDistance;
-            //   this.hoverCircle = new Circle(loc, {radius: r*200}).addTo(this.map);
-            // }
-          });
+          isDanger = true;
         }
+      }
+
+      if (!isDanger) {
+        this.showReachHintDialog();
+      } else {
+        this.bindInteractiveMapEventListener();
       }
 
       const styles = (feature: any) => {
@@ -314,6 +400,19 @@ export class MapComponent {
       const routeGeoJSON = new GeoJSON(route, {
         style: styles,
       });
+
+      this.localStorage.get('route-hint').subscribe((routeHint) => {
+        console.log(routeHint);
+        if (routeHint === undefined) {
+          this.showRouteHintDialog();
+        }
+        this.localStorage.has('route-hint').subscribe((routeHint) => {
+          if (!routeHint) {
+            this.localStorage.set('route-hint', true).subscribe();
+          }
+        });
+      });
+
       this.removeAllStations();
       this.removeAllIsochrones();
       this.removeAllRestaurants();
@@ -335,6 +434,34 @@ export class MapComponent {
       return;
     }
     this.addWayPoints(this.routingService.getCurrentWayPoints());
+  }
+
+  private clearHover(): void {
+    if (this.hoverThread) {
+      clearTimeout(this.hoverThread);
+    }
+    if (this.hoverCircle) {
+      this.map.removeLayer(this.hoverCircle);
+      this.hoverCircle = undefined;
+    }
+    if (this.hoverEffect) {
+      this.map.removeLayer(this.hoverEffect);
+      this.hoverEffect = undefined;
+    }
+    if (this.hoverSubscriptionIsochrone) {
+      this.hoverSubscriptionIsochrone.unsubscribe();
+    }
+    if (this.hoverSubscriptionRoute) {
+      this.hoverSubscriptionRoute.unsubscribe();
+    }
+  }
+
+  private currentMaxDistance(): number {
+    if (this.routingService.wayPoints.features.length === 2) {
+      return this.routingService.startRange;
+    } else {
+      return this.routingService.maxRange;
+    }
   }
 
   private addTimeLayer(route: FeatureCollection | undefined): void {
@@ -489,6 +616,18 @@ export class MapComponent {
     this.updateIsochronesLayer(undefined);
   }
 
+  public isInCurrentIsochrone(lng: number, lat: number): boolean {
+    if (this.isochronesCache) {
+      const polygon = turf.polygon(this.isochronesCache.features[0].geometry.coordinates);
+      const point = turf.point([lng, lat]);
+      if (turf.booleanContains(polygon, point)) {
+        console.log('inside isochrones');
+        return true;
+      }
+    }
+    return false;
+  }
+
   /**
    *  #######################################################################
    *  ############################## Stations ###############################
@@ -581,9 +720,9 @@ export class MapComponent {
     this.updateStationsLayer(stationsGeoJSON);
   }
 
-  public showSnackBar(message: string): void {
+  public showSnackBar(message: string, duration: number): void {
     this.zone.run(() => {
-      this.snackBarRef.open(message, undefined, {duration: 2000});
+      this.snackBarRef.open(message, undefined, {duration});
     });
   }
 
@@ -665,9 +804,17 @@ export class MapComponent {
         .split(' ')
         .map((word: string) => word.charAt(0).toUpperCase() + word.slice(1))
         .join(' ');
-      const popupHtml = `
-      <div>Name: ${feature.properties.name}</div>
+      const restaurantName = feature.properties.name;
+      let popupHtml = '';
+      if (restaurantName !== undefined && restaurantName !== null) {
+        popupHtml = `
+      <div>Name: ${restaurantName}</div>
       <div>Type: ${amenityType}</div>`;
+      } else {
+        popupHtml = `
+      <div>Name: Not available</div>
+      <div>Type: ${amenityType}</div>`;
+      }
       // layer.bindPopup(`${JSON.stringify(feature.properties, null, 2)}`);
       layer.bindPopup(popupHtml);
       // TODO on click
@@ -713,7 +860,10 @@ export class MapComponent {
         <div>${station.properties.type}: ${station.properties.address}; ${station.id}<br/>
             Charge Type: ${station.properties.chargeType}<br/>
             <button id="1-${station.id}" type="button" class="text-center w-100 mt-3 btn btn-secondary station-selected-click">
-                    Select station
+                    Select station (full charge)
+            </button>
+            <button id="3-${station.id}" type="button" class="text-center w-100 mt-2 btn btn-secondary station-selected-click">
+                    Select station (fast charge)
             </button>
             <button id="2-${station.id}" type="button" class="text-center w-100 mt-2 btn btn-secondary station-show-all-click">
                     Return to see all stations
@@ -722,6 +872,18 @@ export class MapComponent {
       const stationGeoJSON = new GeoJSON(station).bindPopup(popupHtml);
 
       this.updateRestaurantsLayer(restaurantsGeoJSON, stationGeoJSON, station.geometry.coordinates.reverse() as LatLngTuple, amenityRange);
+
+      this.localStorage.get('restaurant-hint').subscribe((restaurantHint) => {
+        console.log(restaurantHint);
+        if (restaurantHint === undefined) {
+          this.showRestauratHintDialog();
+        }
+        this.localStorage.has('restaurant-hint').subscribe((restaurantHint) => {
+          if (!restaurantHint) {
+            this.localStorage.set('restaurant-hint', true).subscribe();
+          }
+        });
+      });
     }
   }
 
@@ -830,6 +992,8 @@ export class MapComponent {
     this.addTimeLayer(undefined);
     this.removeLayers();
     this.map.off('click');
+    this.map.off('mousemove');
+    this.clearHover();
     this.map.removeLayer(this.routeLayerGroup);
   }
 
@@ -854,5 +1018,117 @@ export class MapComponent {
         this.restaurantsOfStations[station.id] = station.properties.closeRestaurants;
       }
     }
+  }
+
+  /**
+   *  #######################################################################
+   *  ################################ Dialog ###############################
+   *  #######################################################################
+   */
+
+  public showRestauratHintDialog(): void {
+    setTimeout(() => {
+      this.zone.run(() => {
+        const dialogRef = this.dialog.open(DialogComponent, {autoFocus: false});
+        dialogRef.componentInstance.content = {
+          title: '👨‍🍳 Anything interested?',
+          body: ['You can click the center marker to add this station to your route; or just go back to explore more stations! 🕵️‍♂️'],
+          img: null,
+          button1: null,
+          button2: null,
+          button3: 'Close',
+          index: 0
+        };
+      });
+    }, 1000);
+  }
+
+  public showStationHintDialog(): void {
+    setTimeout(() => {
+      this.zone.run(() => {
+        const dialogRef = this.dialog.open(DialogComponent, {autoFocus: false});
+        dialogRef.componentInstance.content = {
+          title: '😱 Those are stations!',
+          body: ['If you see some circle clusters, just click them!',
+            'Now click one station to see if there is any restaurant around! 🍽'],
+          img: null,
+          button1: null,
+          button2: null,
+          button3: 'Close',
+          index: 0
+        };
+      });
+    }, 1000);
+  }
+
+  public showReRouteHintDialog(): void {
+    setTimeout(() => {
+      this.zone.run(() => {
+        const dialogRef = this.dialog.open(DialogComponent, {autoFocus: false});
+        dialogRef.componentInstance.content = {
+          title: '👏 Bravo! You just added the first station!',
+          body: ['Now you go further! 🛣',
+            'If you are not sure where will be stations, you can also turn on stations heatmap 🔥 from the side bar.',
+            'Just continue to add more stations along the route! Good luck! 😉'],
+          img: null,
+          button1: null,
+          button2: null,
+          button3: 'Close',
+          index: 0
+        };
+      });
+    }, 1000);
+  }
+
+  public showHoverHintDialog(): void {
+    setTimeout(() => {
+      this.zone.run(() => {
+        const dialogRef = this.dialog.open(DialogComponent, {autoFocus: false});
+        dialogRef.componentInstance.content = {
+          title: '🥳 You just discovered the reachable area!',
+          body: ['You can look for charge stations in that area.',
+            'Now try stay somewhere again and click there to see what is there! 😉'],
+          img: null,
+          button1: null,
+          button2: null,
+          button3: 'Close',
+          index: 0
+        };
+      });
+    }, 500);
+  }
+
+  public showRouteHintDialog(): void {
+    setTimeout(() => {
+      this.zone.run(() => {
+        const dialogRef = this.dialog.open(DialogComponent, {autoFocus: false});
+        dialogRef.componentInstance.content = {
+          title: '🎉 Great! You just got your first route!',
+          body: ['Now try to move you cursor around the highlight route and stay there for a while to see what would happen! 😉'],
+          img: null,
+          button1: null,
+          button2: null,
+          button3: 'Close',
+          index: 0
+        };
+      });
+    }, 0);
+  }
+
+  public showReachHintDialog(): void {
+    setTimeout(() => {
+      this.zone.run(() => {
+        const dialogRef = this.dialog.open(DialogComponent, {autoFocus: false});
+        dialogRef.componentInstance.content = {
+          title: '🥳 Congrats!',
+          body: ['Now you can safely reach your destination! Have a nice journey! 🎉'],
+          img: null,
+          button1: null,
+          button2: null,
+          button3: 'Close',
+          index: 0
+        };
+      });
+    }, 1000);
   }
 }
