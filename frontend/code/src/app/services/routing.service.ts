@@ -83,7 +83,7 @@ export class RoutingService {
     try {
       wholeRoute = featureCollection.features[0] as Feature;
     } catch (e) {
-      this.mapComponent.showSnackBar('Point out of Germany. You are not allowed to leave this country.');
+      this.mapComponent.showSnackBar('Point out of Germany. You are not allowed to leave this country.', 2000);
       // @ts-ignore
       return null;
     }

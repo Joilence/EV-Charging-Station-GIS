@@ -1,7 +1,7 @@
 /// <reference types='leaflet-sidebar-v2' />
 import {Component, EventEmitter, HostListener, Input, NgZone, Output} from '@angular/core';
 import {Feature, FeatureCollection, Geometry, Point} from 'geojson';
-import {Circle, GeoJSON, Icon, LatLng, latLng, LatLngTuple, Layer, LayerGroup, LeafletMouseEvent, Map, Marker, TileLayer,} from 'leaflet';
+import {Circle, GeoJSON, Icon, LatLng, latLng, LatLngTuple, Layer, LayerGroup, LeafletMouseEvent, Map, Marker, TileLayer} from 'leaflet';
 import 'leaflet.heat/dist/leaflet-heat';
 import {RoutingService} from '../services/routing.service';
 import {DataService} from '../services/data.service';
@@ -18,9 +18,8 @@ import * as turf from '@turf/turf';
 import {Polygon} from '@turf/turf';
 import {MatSnackBar} from '@angular/material/snack-bar';
 import '../../../node_modules/leaflet.markercluster/dist/leaflet.markercluster';
-import { StorageMap } from '@ngx-pwa/local-storage';
-import { MatDialog } from '@angular/material/dialog';
-import {DialogComponent} from '../dialog/dialog.component'
+import {StorageMap} from '@ngx-pwa/local-storage';
+import {MatDialog} from '@angular/material/dialog';
 
 declare var L: any;
 
@@ -231,7 +230,7 @@ export class MapComponent {
         }, 6000);
         setTimeout(() => {
           this.showSnackBar('Just continue to add more stations along the route! Good luck! 😉', 6000);
-        }, 12000)
+        }, 12000);
       }
       this.localStorage.has('reroute-hint').subscribe((rerouteHint) => {
         if (!rerouteHint) {
@@ -257,8 +256,9 @@ export class MapComponent {
           const lastWayPointLocation = wayPoints[wayPoints.length - 2].geometry.coordinates;
           this.map.on('click', (e: LeafletMouseEvent) => {
             const loc = e.latlng;
-            
-            if (this.isInCurrentIsochrone(loc.lng, loc.lat)) return;
+            if (this.isInCurrentIsochrone(loc.lng, loc.lat)) {
+              return;
+            }
 
             this.clearHover();
             // const lastWayPointLatLng = new LatLng(lastWayPointLocation[1], lastWayPointLocation[0])
@@ -286,69 +286,72 @@ export class MapComponent {
             // clear last hover state
             this.clearHover();
 
-            if (this.isInCurrentIsochrone(loc.lng, loc.lat)) return;
+            if (this.isInCurrentIsochrone(loc.lng, loc.lat)) {
+              return;
+            }
 
             // start count again
             this.hoverThread = setTimeout(() => {
               const loc = e.latlng;
               console.log('stop at:', e.latlng);
-              this.hoverSubscriptionRoute = this.dataService.getRoute('driving-car', [lastWayPointLocation, [loc.lng, loc.lat]]).subscribe((route: FeatureCollection) => {
-                if (this.hoverCircle) {
-                  this.map.removeLayer(this.hoverCircle);
-                }
-                if (this.hoverEffect) {
-                  this.map.removeLayer(this.hoverEffect);
-                }
-                // console.log('route of click and departure:', route);
-                // TODO: danger segments not accurate
-                
-                const distance = route.features[0].properties!.summary.distance;
-                const maxDistance = this.currentMaxDistance();
-                if (distance <= maxDistance) {
-                  const restDistance = Math.min(maxDistance - distance, this.routingService.maxStationSearchRange);
+              this.hoverSubscriptionRoute = this.dataService.getRoute('driving-car', [lastWayPointLocation, [loc.lng, loc.lat]])
+                .subscribe((route: FeatureCollection) => {
+                  if (this.hoverCircle) {
+                    this.map.removeLayer(this.hoverCircle);
+                  }
+                  if (this.hoverEffect) {
+                    this.map.removeLayer(this.hoverEffect);
+                  }
+                  // console.log('route of click and departure:', route);
+                  // TODO: danger segments not accurate
 
-                  // Option 1: show circle
-                  // const metresPerPixel = 40075016.686 * Math.abs(Math.cos(this.map.getCenter().lat * Math.PI/180)) / Math.pow(2, this.map.getZoom()+8);
-                  // const r = restDistance / metresPerPixel;
-                  // this.hoverCircle = new Circle(loc, {radius: r*200}).addTo(this.map);
-                  
-                  // Option 2: show isochrone
-                  this.dataService.getIsochrones([[loc.lng, loc.lat]], 'distance', [restDistance]).subscribe((isochrones: FeatureCollection<Polygon>) => {
-                    this.hoverEffect = new LayerGroup();
+                  const distance = route.features[0].properties!.summary.distance;
+                  const maxDistance = this.currentMaxDistance();
+                  if (distance <= maxDistance) {
+                    const restDistance = Math.min(maxDistance - distance, this.routingService.maxStationSearchRange);
 
-                    const isochronesJSON = new GeoJSON(isochrones);
-                    isochronesJSON.addTo(this.hoverEffect);
-                    // Option 3: show route
-                    const routeGeoJSON = new GeoJSON(route, {
-                      style: {
-                        color: '#000000',
-                        weight: 8,
-                        opacity: 0.2
-                      },
-                    });
-                    routeGeoJSON.addTo(this.hoverEffect);
+                    // Option 1: show circle
+                    // const metresPerPixel = 40075016.686 * Math.abs(Math.cos(this.map.getCenter().lat * Math.PI/180)) / Math.pow(2, this.map.getZoom()+8);
+                    // const r = restDistance / metresPerPixel;
+                    // this.hoverCircle = new Circle(loc, {radius: r*200}).addTo(this.map);
 
-                    this.hoverEffect.addTo(this.map)
+                    // Option 2: show isochrone
+                    this.dataService.getIsochrones([[loc.lng, loc.lat]], 'distance', [restDistance]).subscribe((isochrones: FeatureCollection<Polygon>) => {
+                      this.hoverEffect = new LayerGroup();
 
-                    this.localStorage.get('hover-hint').subscribe((hoverHint) => {
-                      console.log(hoverHint);
-                      if (hoverHint === undefined) {
-                        this.showSnackBar('🥳 You just discovered the reachable area where you can look for charge stations! 🥳', 5000);
-                        setTimeout(() => {
-                          this.showSnackBar('Now try to click there to see what is there! 😉', 2000);
-                        }, 5000);
-                      }
-                      this.localStorage.has('hover-hint').subscribe((hoverHint) => {
-                        if (!hoverHint) {
-                          this.localStorage.set('hover-hint', true).subscribe();
+                      const isochronesJSON = new GeoJSON(isochrones);
+                      isochronesJSON.addTo(this.hoverEffect);
+                      // Option 3: show route
+                      const routeGeoJSON = new GeoJSON(route, {
+                        style: {
+                          color: '#000000',
+                          weight: 8,
+                          opacity: 0.2
+                        },
+                      });
+                      routeGeoJSON.addTo(this.hoverEffect);
+
+                      this.hoverEffect.addTo(this.map);
+
+                      this.localStorage.get('hover-hint').subscribe((hoverHint) => {
+                        console.log(hoverHint);
+                        if (hoverHint === undefined) {
+                          this.showSnackBar('🥳 You just discovered the reachable area where you can look for charge stations! 🥳', 5000);
+                          setTimeout(() => {
+                            this.showSnackBar('Now try to click there to see what is there! 😉', 2000);
+                          }, 5000);
                         }
+                        this.localStorage.has('hover-hint').subscribe((hoverHint) => {
+                          if (!hoverHint) {
+                            this.localStorage.set('hover-hint', true).subscribe();
+                          }
+                        });
                       });
                     });
-                  });
-                } else {
-                  this.showSnackBar(`😰 Sorry, too far away and not reachable. Please select a closer point.`, 3000);
-                }
-              });
+                  } else {
+                    this.showSnackBar(`😰 Sorry, too far away and not reachable. Please select a closer point.`, 3000);
+                  }
+                });
             }, this.hoverTimeout);
           });
         }
@@ -395,7 +398,7 @@ export class MapComponent {
         if (routeHint === undefined) {
           this.showSnackBar('🎉 Great! You just calculate your first route! 🎉', 3000);
           setTimeout(() => {
-            this.showSnackBar('Now try to move you cursor around the highlight route and stay there for a while to see what would happen! 😉', 5000)
+            this.showSnackBar('Now try to move you cursor around the highlight route and stay there for a while to see what would happen! 😉', 5000);
           }, 3000);
         }
         this.localStorage.has('route-hint').subscribe((routeHint) => {
@@ -428,12 +431,22 @@ export class MapComponent {
     this.addWayPoints(this.routingService.getCurrentWayPoints());
   }
 
-  private clearHover() {
-    if (this.hoverThread) clearTimeout(this.hoverThread);
-    if (this.hoverCircle) this.map.removeLayer(this.hoverCircle);
-    if (this.hoverEffect) this.map.removeLayer(this.hoverEffect);
-    if (this.hoverSubscriptionIsochrone) this.hoverSubscriptionIsochrone.unsubscribe();
-    if (this.hoverSubscriptionRoute) this.hoverSubscriptionRoute.unsubscribe();
+  private clearHover(): void {
+    if (this.hoverThread) {
+      clearTimeout(this.hoverThread);
+    }
+    if (this.hoverCircle) {
+      this.map.removeLayer(this.hoverCircle);
+    }
+    if (this.hoverEffect) {
+      this.map.removeLayer(this.hoverEffect);
+    }
+    if (this.hoverSubscriptionIsochrone) {
+      this.hoverSubscriptionIsochrone.unsubscribe();
+    }
+    if (this.hoverSubscriptionRoute) {
+      this.hoverSubscriptionRoute.unsubscribe();
+    }
   }
 
   private currentMaxDistance(): number {
@@ -605,7 +618,7 @@ export class MapComponent {
         return true;
       }
     }
-    return false
+    return false;
   }
 
   /**
@@ -702,7 +715,7 @@ export class MapComponent {
 
   public showSnackBar(message: string, duration: number): void {
     this.zone.run(() => {
-      this.snackBarRef.open(message, undefined, {duration: duration});
+      this.snackBarRef.open(message, undefined, {duration});
     });
   }
 
