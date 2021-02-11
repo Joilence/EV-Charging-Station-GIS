@@ -437,9 +437,11 @@ export class MapComponent {
     }
     if (this.hoverCircle) {
       this.map.removeLayer(this.hoverCircle);
+      this.hoverCircle = undefined;
     }
     if (this.hoverEffect) {
       this.map.removeLayer(this.hoverEffect);
+      this.hoverEffect = undefined;
     }
     if (this.hoverSubscriptionIsochrone) {
       this.hoverSubscriptionIsochrone.unsubscribe();
