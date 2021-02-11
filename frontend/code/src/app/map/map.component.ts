@@ -429,7 +429,7 @@ export class MapComponent {
     this.addWayPoints(this.routingService.getCurrentWayPoints());
   }
 
-  private clearHover() {
+  private clearHover(): void {
     if (this.hoverThread) {
       clearTimeout(this.hoverThread);
     }
