@@ -241,9 +241,10 @@ export class MapComponent {
   public addRoutePath(routeObs: Observable<FeatureCollection>): void {
     routeObs.subscribe((route: FeatureCollection) => {
       // console.log('addRoutePath: processed route', route);
-
+      let isDanger = false;
       for (const path of route.features) {
         if (path.properties!.type === 'Danger Segment') {
+          isDanger = true;
           const wayPoints = this.routingService.getCurrentWayPoints().features;
           const lastWayPointLocation = wayPoints[wayPoints.length - 2].geometry.coordinates;
           this.map.on('click', (e: LeafletMouseEvent) => {
@@ -344,6 +345,10 @@ export class MapComponent {
             }, this.hoverTimeout);
           });
         }
+      }
+
+      if (!isDanger) {
+        this.showReachHintDialog();
       }
 
       const styles = (feature: any) => {
@@ -1064,7 +1069,8 @@ export class MapComponent {
         const dialogRef = this.dialog.open(DialogComponent, {autoFocus: false});
         dialogRef.componentInstance.content = {
           title: '🥳 You just discovered the reachable area!',
-          body: ['You can look for charge stations in that area. Now try to click there to see what is there! 😉'],
+          body: ['You can look for charge stations in that area.',
+                 'Now try stay somewhere again and click there to see what is there! 😉'],
           img: null,
           button1: null,
           button2: null,
@@ -1090,5 +1096,22 @@ export class MapComponent {
         };
       });
     }, 0);
+  }
+
+  public showReachHintDialog(): void {
+    setTimeout(() => {
+      this.zone.run(() => {
+        const dialogRef = this.dialog.open(DialogComponent, {autoFocus: false});
+        dialogRef.componentInstance.content = {
+          title: '🥳 Congrads!',
+          body: ['Now you can safely reach your destination! Have a nice journey! 🎉'],
+          img: null,
+          button1: null,
+          button2: null,
+          button3: 'Close',
+          index: 0
+        };
+      });
+    }, 1000);
   }
 }
