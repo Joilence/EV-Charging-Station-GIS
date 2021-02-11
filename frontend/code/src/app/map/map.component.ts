@@ -168,6 +168,7 @@ export class MapComponent {
     this.removeAllIsochrones();
     this.removeAllRestaurants();
     this.cleanCache();
+    this.clearHover();
     this.spinnerService.show('searching for stations...');
     this.dataService.getIsochrones([location], 'distance', [range]).subscribe((isochrones: FeatureCollection<Polygon>) => {
       this.isochronesCache = isochrones;
@@ -846,7 +847,10 @@ export class MapComponent {
         <div>${station.properties.type}: ${station.properties.address}; ${station.id}<br/>
             Charge Type: ${station.properties.chargeType}<br/>
             <button id="1-${station.id}" type="button" class="text-center w-100 mt-3 btn btn-secondary station-selected-click">
-                    Select station
+                    Select station (full charge)
+            </button>
+            <button id="3-${station.id}" type="button" class="text-center w-100 mt-2 btn btn-secondary station-selected-click">
+                    Select station (fast charge)
             </button>
             <button id="2-${station.id}" type="button" class="text-center w-100 mt-2 btn btn-secondary station-show-all-click">
                     Return to see all stations
