@@ -141,6 +141,8 @@ export class MapComponent {
 
   public route(): void {
     this.map.off('click');
+    this.map.off('mousemove');
+    this.clearHover();
     this.addRoutePath(this.routingService.getCurrentRoute());
   }
 
@@ -963,6 +965,7 @@ export class MapComponent {
     this.removeLayers();
     this.map.off('click');
     this.map.off('mousemove');
+    this.clearHover();
     this.map.removeLayer(this.routeLayerGroup);
   }
 
