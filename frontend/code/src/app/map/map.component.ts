@@ -18,6 +18,9 @@ import * as turf from '@turf/turf';
 import {Polygon} from '@turf/turf';
 import {MatSnackBar} from '@angular/material/snack-bar';
 import '../../../node_modules/leaflet.markercluster/dist/leaflet.markercluster';
+import { StorageMap } from '@ngx-pwa/local-storage';
+import { MatDialog } from '@angular/material/dialog';
+import {DialogComponent} from '../dialog/dialog.component'
 
 declare var L: any;
 
@@ -32,7 +35,7 @@ export class MapComponent {
 
   constructor(private routingService: RoutingService, private mapService: MapService,
               private spinnerService: SpinnerOverlayService, private dataService: DataService,
-              private snackBarRef: MatSnackBar, private zone: NgZone) {
+              private snackBarRef: MatSnackBar, private zone: NgZone, private localStorage: StorageMap, public dialog: MatDialog) {
     this.mapService.setMapComponent(this);
     this.routingService.setMapComponent(this);
     this.showFeat = false;
@@ -175,7 +178,7 @@ export class MapComponent {
       .subscribe((stations: FeatureCollection<Point>) => {
         if (stations.features.length === 0) {
           this.spinnerService.hide();
-          this.showSnackBar('Sorry, there is no station. Please choose another area.');
+          this.showSnackBar('🤯 Sorry, there is no station. Please choose another area.', 3000);
         } else {
           this.spinnerService.hide();
           this.stationsFeatureCollectionCache = stations;
@@ -184,6 +187,21 @@ export class MapComponent {
           // console.log('caching stations: cache:', this.stationsFeatureCollectionCache);
           // console.log('caching stations: cache as FeatureCollection:', this.stationsFeatureCollectionCache as FeatureCollection);
           this.updateRestaurantCache(stations);
+
+          this.localStorage.get('station-hint').subscribe((stationHint) => {
+            console.log(stationHint);
+            if (stationHint === undefined) {
+              this.showSnackBar('😱 Thoes are stations! If you see some circle clusters, just click them!', 4000);
+              setTimeout(() => {
+                this.showSnackBar('Now click one station to see if there is any restaurant around! 🍽', 5000);
+              }, 4000);
+            }
+            this.localStorage.has('station-hint').subscribe((stationHint) => {
+              if (!stationHint) {
+                this.localStorage.set('station-hint', true).subscribe();
+              }
+            });
+          });
         }
       });
   }
@@ -202,6 +220,23 @@ export class MapComponent {
     // console.log('selectStation: add station to selection:', station);
     this.routingService.addNewStation(station);
     this.route();
+    this.localStorage.get('reroute-hint').subscribe((rerouteHint) => {
+      console.log(rerouteHint);
+      if (rerouteHint === undefined) {
+        this.showSnackBar('👏 Bravo! You just added the first station and now you go further!', 6000);
+        setTimeout(() => {
+          this.showSnackBar('💡 If you are not sure where will be stations, you can also turn on stations heatmap 🔥 from the side bar.', 6000);
+        }, 6000);
+        setTimeout(() => {
+          this.showSnackBar('Just continue to add more stations along the route! Good luck! 😉', 6000);
+        }, 12000)
+      }
+      this.localStorage.has('reroute-hint').subscribe((rerouteHint) => {
+        if (!rerouteHint) {
+          this.localStorage.set('reroute-hint', true).subscribe();
+        }
+      });
+    });
   }
 
   /**
@@ -232,7 +267,7 @@ export class MapComponent {
               console.log('Distance to last way point:', distance);
               const maxDistance = this.currentMaxDistance();
               if (distance >= maxDistance) {
-                this.showSnackBar(`Sorry, too far away and not reachable. Please select a closer point.`);
+                this.showSnackBar(`😰 Sorry, too far away and not reachable. Please select a closer point.`, 2000);
               } else {
                 console.log('initial search range:', maxDistance - distance);
                 console.log('max search range:', this.routingService.maxStationSearchRange);
@@ -292,9 +327,24 @@ export class MapComponent {
                     routeGeoJSON.addTo(this.hoverEffect);
 
                     this.hoverEffect.addTo(this.map)
+
+                    this.localStorage.get('hover-hint').subscribe((hoverHint) => {
+                      console.log(hoverHint);
+                      if (hoverHint === undefined) {
+                        this.showSnackBar('🥳 You just discovered the reachable area where you can look for charge stations! 🥳', 5000);
+                        setTimeout(() => {
+                          this.showSnackBar('Now try to click there to see what is there! 😉', 2000);
+                        }, 5000);
+                      }
+                      this.localStorage.has('hover-hint').subscribe((hoverHint) => {
+                        if (!hoverHint) {
+                          this.localStorage.set('hover-hint', true).subscribe();
+                        }
+                      });
+                    });
                   });
                 } else {
-                  this.showSnackBar(`Sorry, too far away and not reachable. Please select a closer point.`);
+                  this.showSnackBar(`😰 Sorry, too far away and not reachable. Please select a closer point.`, 3000);
                 }
               });
             }, this.hoverTimeout);
@@ -337,6 +387,22 @@ export class MapComponent {
       const routeGeoJSON = new GeoJSON(route, {
         style: styles,
       });
+
+      this.localStorage.get('route-hint').subscribe((routeHint) => {
+        console.log(routeHint);
+        if (routeHint === undefined) {
+          this.showSnackBar('🎉 Great! You just calculate your first route! 🎉', 3000);
+          setTimeout(() => {
+            this.showSnackBar('Now try to move you cursor around the highlight route and stay there for a while to see what would happen! 😉', 5000)
+          }, 3000);
+        }
+        this.localStorage.has('route-hint').subscribe((routeHint) => {
+          if (!routeHint) {
+            this.localStorage.set('route-hint', true).subscribe();
+          }
+        });
+      });
+
       this.removeAllStations();
       this.removeAllIsochrones();
       this.removeAllRestaurants();
@@ -632,9 +698,9 @@ export class MapComponent {
     this.updateStationsLayer(stationsGeoJSON);
   }
 
-  public showSnackBar(message: string): void {
+  public showSnackBar(message: string, duration: number): void {
     this.zone.run(() => {
-      this.snackBarRef.open(message, undefined, {duration: 2000});
+      this.snackBarRef.open(message, undefined, {duration: duration});
     });
   }
 
@@ -773,6 +839,21 @@ export class MapComponent {
       const stationGeoJSON = new GeoJSON(station).bindPopup(popupHtml);
 
       this.updateRestaurantsLayer(restaurantsGeoJSON, stationGeoJSON, station.geometry.coordinates.reverse() as LatLngTuple, amenityRange);
+
+      this.localStorage.get('restaurant-hint').subscribe((restaurantHint) => {
+        console.log(restaurantHint);
+        if (restaurantHint === undefined) {
+          this.showSnackBar('👨‍🍳 Anything interested?', 3000);
+          setTimeout(() => {
+            this.showSnackBar('You can click the center marker to add this station to your route; or just go back to explore more stations! 🕵️‍♂️', 8000);
+          }, 3000);
+        }
+        this.localStorage.has('restaurant-hint').subscribe((restaurantHint) => {
+          if (!restaurantHint) {
+            this.localStorage.set('restaurant-hint', true).subscribe();
+          }
+        });
+      });
     }
   }
 
