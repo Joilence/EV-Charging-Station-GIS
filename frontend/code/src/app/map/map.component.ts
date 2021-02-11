@@ -48,13 +48,13 @@ export class MapComponent {
 
   @Output() map$: EventEmitter<Map> = new EventEmitter();
   public map!: Map;
+
+  // Route Layers
   private routeLayerGroup: LayerGroup = new LayerGroup();
   private wayPointsLayerGroup: LayerGroup = new LayerGroup();
   private stationsLayerGroup: LayerGroup = new LayerGroup();
   private isochronesLayerGroup: LayerGroup = new LayerGroup();
   private restaurantsLayerGroup: LayerGroup = new LayerGroup();
-  private hoverCircle?: Circle;
-  private hoverEffect?: LayerGroup;
   private timeLayer: LayerGroup = new LayerGroup();
 
   private layers: Layer[] = [];
@@ -64,6 +64,9 @@ export class MapComponent {
 
   private stationMarkers!: Array<Layer>;
 
+  // Hove Members
+  private hoverCircle?: Circle;
+  private hoverEffect?: LayerGroup;
   private hoverTimeout = 500;
   private hoverThread?: ReturnType<typeof setTimeout>;
   private hoverSubscriptionRoute?: Subscription;
@@ -80,6 +83,7 @@ export class MapComponent {
     center: latLng(48.13, 8.20)
   };
 
+  // Cache
   public isochronesCache?: FeatureCollection<Polygon>;
   public stationsFeatureCollectionCache?: FeatureCollection<Point>;
   public restaurantsOfStations: { [id: string]: Array<Feature>; } = {};
@@ -216,14 +220,9 @@ export class MapComponent {
           const lastWayPointLocation = wayPoints[wayPoints.length - 2].geometry.coordinates;
           this.map.on('click', (e: LeafletMouseEvent) => {
             const loc = e.latlng;
-            if (this.isochronesCache) {
-              const polygon = turf.polygon(this.isochronesCache.features[0].geometry.coordinates);
-              const point = turf.point([loc.lng, loc.lat]);
-              if (turf.booleanContains(polygon, point)) {
-                console.log('click inside isochrones');
-                return;
-              }
-            }
+            
+            if (this.isInCurrentIsochrone(loc.lng, loc.lat)) return;
+
             this.clearHover();
             // const lastWayPointLatLng = new LatLng(lastWayPointLocation[1], lastWayPointLocation[0])
             this.dataService.getRoute('driving-car', [lastWayPointLocation, [loc.lng, loc.lat]]).subscribe((route: FeatureCollection) => {
@@ -231,12 +230,7 @@ export class MapComponent {
               // TODO: danger segments not accurate
               const distance = route.features[0].properties!.summary.distance;
               console.log('Distance to last way point:', distance);
-              let maxDistance = 0;
-              if (this.routingService.wayPoints.features.length === 2) {
-                maxDistance = this.routingService.startRange;
-              } else {
-                maxDistance = this.routingService.maxRange;
-              }
+              const maxDistance = this.currentMaxDistance();
               if (distance >= maxDistance) {
                 this.showSnackBar(`Sorry, too far away and not reachable. Please select a closer point.`);
               } else {
@@ -252,17 +246,10 @@ export class MapComponent {
           this.map.on('mousemove', (e: LeafletMouseEvent) => {
             const loc = e.latlng;
 
-            // clear last state
+            // clear last hover state
             this.clearHover();
 
-            if (this.isochronesCache) {
-              const polygon = turf.polygon(this.isochronesCache.features[0].geometry.coordinates);
-              const point = turf.point([loc.lng, loc.lat]);
-              if (turf.booleanContains(polygon, point)) {
-                console.log('hover inside isochrones');
-                return;
-              }
-            }
+            if (this.isInCurrentIsochrone(loc.lng, loc.lat)) return;
 
             // start count again
             this.hoverThread = setTimeout(() => {
@@ -279,8 +266,9 @@ export class MapComponent {
                 // TODO: danger segments not accurate
                 
                 const distance = route.features[0].properties!.summary.distance;
-                if (distance <= this.routingService.maxRange) {
-                  const restDistance = Math.min(this.routingService.maxRange - distance, this.routingService.maxStationSearchRange);
+                const maxDistance = this.currentMaxDistance();
+                if (distance <= maxDistance) {
+                  const restDistance = Math.min(maxDistance - distance, this.routingService.maxStationSearchRange);
 
                   // Option 1: show circle
                   // const metresPerPixel = 40075016.686 * Math.abs(Math.cos(this.map.getCenter().lat * Math.PI/180)) / Math.pow(2, this.map.getZoom()+8);
@@ -378,6 +366,14 @@ export class MapComponent {
     if (this.hoverEffect) this.map.removeLayer(this.hoverEffect);
     if (this.hoverSubscriptionIsochrone) this.hoverSubscriptionIsochrone.unsubscribe();
     if (this.hoverSubscriptionRoute) this.hoverSubscriptionRoute.unsubscribe();
+  }
+
+  private currentMaxDistance(): number {
+    if (this.routingService.wayPoints.features.length === 2) {
+      return this.routingService.startRange;
+    } else {
+      return this.routingService.maxRange;
+    }
   }
 
   private addTimeLayer(route: FeatureCollection | undefined): void {
@@ -530,6 +526,18 @@ export class MapComponent {
 
   public removeAllIsochrones(): void {
     this.updateIsochronesLayer(undefined);
+  }
+
+  public isInCurrentIsochrone(lng: number, lat: number): boolean {
+    if (this.isochronesCache) {
+      const polygon = turf.polygon(this.isochronesCache.features[0].geometry.coordinates);
+      const point = turf.point([lng, lat]);
+      if (turf.booleanContains(polygon, point)) {
+        console.log('inside isochrones');
+        return true;
+      }
+    }
+    return false
   }
 
   /**
