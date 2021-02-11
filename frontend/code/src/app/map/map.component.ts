@@ -20,6 +20,7 @@ import {MatSnackBar} from '@angular/material/snack-bar';
 import '../../../node_modules/leaflet.markercluster/dist/leaflet.markercluster';
 import {StorageMap} from '@ngx-pwa/local-storage';
 import {MatDialog} from '@angular/material/dialog';
+import {DialogComponent} from '../dialog/dialog.component'
 
 declare var L: any;
 
@@ -192,10 +193,7 @@ export class MapComponent {
           this.localStorage.get('station-hint').subscribe((stationHint) => {
             console.log(stationHint);
             if (stationHint === undefined) {
-              this.showSnackBar('😱 Thoes are stations! If you see some circle clusters, just click them!', 4000);
-              setTimeout(() => {
-                this.showSnackBar('Now click one station to see if there is any restaurant around! 🍽', 5000);
-              }, 4000);
+              this.showStationHintDialog();
             }
             this.localStorage.has('station-hint').subscribe((stationHint) => {
               if (!stationHint) {
@@ -224,13 +222,7 @@ export class MapComponent {
     this.localStorage.get('reroute-hint').subscribe((rerouteHint) => {
       console.log(rerouteHint);
       if (rerouteHint === undefined) {
-        this.showSnackBar('👏 Bravo! You just added the first station and now you go further!', 6000);
-        setTimeout(() => {
-          this.showSnackBar('💡 If you are not sure where will be stations, you can also turn on stations heatmap 🔥 from the side bar.', 6000);
-        }, 6000);
-        setTimeout(() => {
-          this.showSnackBar('Just continue to add more stations along the route! Good luck! 😉', 6000);
-        }, 12000);
+        this.showReRouteHintDialog();
       }
       this.localStorage.has('reroute-hint').subscribe((rerouteHint) => {
         if (!rerouteHint) {
@@ -336,10 +328,7 @@ export class MapComponent {
                       this.localStorage.get('hover-hint').subscribe((hoverHint) => {
                         console.log(hoverHint);
                         if (hoverHint === undefined) {
-                          this.showSnackBar('🥳 You just discovered the reachable area where you can look for charge stations! 🥳', 5000);
-                          setTimeout(() => {
-                            this.showSnackBar('Now try to click there to see what is there! 😉', 2000);
-                          }, 5000);
+                          this.showHoverHintDialog();
                         }
                         this.localStorage.has('hover-hint').subscribe((hoverHint) => {
                           if (!hoverHint) {
@@ -396,10 +385,7 @@ export class MapComponent {
       this.localStorage.get('route-hint').subscribe((routeHint) => {
         console.log(routeHint);
         if (routeHint === undefined) {
-          this.showSnackBar('🎉 Great! You just calculate your first route! 🎉', 3000);
-          setTimeout(() => {
-            this.showSnackBar('Now try to move you cursor around the highlight route and stay there for a while to see what would happen! 😉', 5000);
-          }, 3000);
+          this.showRouteHintDialog();
         }
         this.localStorage.has('route-hint').subscribe((routeHint) => {
           if (!routeHint) {
@@ -860,10 +846,7 @@ export class MapComponent {
       this.localStorage.get('restaurant-hint').subscribe((restaurantHint) => {
         console.log(restaurantHint);
         if (restaurantHint === undefined) {
-          this.showSnackBar('👨‍🍳 Anything interested?', 3000);
-          setTimeout(() => {
-            this.showSnackBar('You can click the center marker to add this station to your route; or just go back to explore more stations! 🕵️‍♂️', 8000);
-          }, 3000);
+          this.showRestauratHintDialog();
         }
         this.localStorage.has('restaurant-hint').subscribe((restaurantHint) => {
           if (!restaurantHint) {
@@ -1006,4 +989,88 @@ export class MapComponent {
       }
     }
   }
+
+  /**
+   *  #######################################################################
+   *  ################################ Dialog ###############################
+   *  #######################################################################
+   */
+
+   public showRestauratHintDialog() {
+     setTimeout(() => {
+      const dialogRef = this.dialog.open(DialogComponent, {autoFocus: false});
+      dialogRef.componentInstance.content = {
+            title: '👨‍🍳 Anything interested?',
+            body: ['You can click the center marker to add this station to your route; or just go back to explore more stations! 🕵️‍♂️',],
+            img: null,
+            button1: null,
+            button2: null,
+            button3: 'Close',
+            index: 0
+          };
+     }, 1000);
+   }
+
+   public showStationHintDialog() {
+     setTimeout(() => {
+      const dialogRef = this.dialog.open(DialogComponent, {autoFocus: false});
+      dialogRef.componentInstance.content = {
+            title: '😱 Those are stations!',
+            body: ['If you see some circle clusters, just click them!',
+                   'Now click one station to see if there is any restaurant around! 🍽',],
+            img: null,
+            button1: null,
+            button2: null,
+            button3: 'Close',
+            index: 0
+          };
+     }, 1000);
+   }
+
+   public showReRouteHintDialog() {
+     setTimeout(() => {
+      const dialogRef = this.dialog.open(DialogComponent, {autoFocus: false});
+      dialogRef.componentInstance.content = {
+            title: '👏 Bravo! You just added the first station!',
+            body: ['Now you go further! 🛣',
+                   'If you are not sure where will be stations, you can also turn on stations heatmap 🔥 from the side bar.',
+                   'Just continue to add more stations along the route! Good luck! 😉',],
+            img: null,
+            button1: null,
+            button2: null,
+            button3: 'Close',
+            index: 0
+          };
+     }, 1000);
+   }
+
+   public showHoverHintDialog() {
+     setTimeout(() => {
+      const dialogRef = this.dialog.open(DialogComponent, {autoFocus: false});
+      dialogRef.componentInstance.content = {
+            title: '🥳 You just discovered the reachable area!',
+            body: ['You can look for charge stations in that area. Now try to click there to see what is there! 😉'],
+            img: null,
+            button1: null,
+            button2: null,
+            button3: 'Close',
+            index: 0
+          };
+     }, 500);
+   }
+
+   public showRouteHintDialog() {
+    setTimeout(() => {
+      const dialogRef = this.dialog.open(DialogComponent, {autoFocus: false});
+      dialogRef.componentInstance.content = {
+            title: '🎉 Great! You just got your first route!',
+            body: ['Now try to move you cursor around the highlight route and stay there for a while to see what would happen! 😉',],
+            img: null,
+            button1: null,
+            button2: null,
+            button3: 'Close',
+            index: 0
+          };
+    }, 0);
+   }
 }
