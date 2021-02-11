@@ -20,7 +20,7 @@ import {MatSnackBar} from '@angular/material/snack-bar';
 import '../../../node_modules/leaflet.markercluster/dist/leaflet.markercluster';
 import {StorageMap} from '@ngx-pwa/local-storage';
 import {MatDialog} from '@angular/material/dialog';
-import {DialogComponent} from '../dialog/dialog.component'
+import {DialogComponent} from '../dialog/dialog.component';
 
 declare var L: any;
 
@@ -785,9 +785,17 @@ export class MapComponent {
         .split(' ')
         .map((word: string) => word.charAt(0).toUpperCase() + word.slice(1))
         .join(' ');
-      const popupHtml = `
-      <div>Name: ${feature.properties.name}</div>
+      const restaurantName = feature.properties.name;
+      let popupHtml = '';
+      if (restaurantName !== undefined && restaurantName !== null) {
+        popupHtml = `
+      <div>Name: ${restaurantName}</div>
       <div>Type: ${amenityType}</div>`;
+      } else {
+        popupHtml = `
+      <div>Name: Not available</div>
+      <div>Type: ${amenityType}</div>`;
+      }
       // layer.bindPopup(`${JSON.stringify(feature.properties, null, 2)}`);
       layer.bindPopup(popupHtml);
       // TODO on click
@@ -996,81 +1004,91 @@ export class MapComponent {
    *  #######################################################################
    */
 
-   public showRestauratHintDialog() {
-     setTimeout(() => {
-      const dialogRef = this.dialog.open(DialogComponent, {autoFocus: false});
-      dialogRef.componentInstance.content = {
-            title: '👨‍🍳 Anything interested?',
-            body: ['You can click the center marker to add this station to your route; or just go back to explore more stations! 🕵️‍♂️',],
-            img: null,
-            button1: null,
-            button2: null,
-            button3: 'Close',
-            index: 0
-          };
-     }, 1000);
-   }
-
-   public showStationHintDialog() {
-     setTimeout(() => {
-      const dialogRef = this.dialog.open(DialogComponent, {autoFocus: false});
-      dialogRef.componentInstance.content = {
-            title: '😱 Those are stations!',
-            body: ['If you see some circle clusters, just click them!',
-                   'Now click one station to see if there is any restaurant around! 🍽',],
-            img: null,
-            button1: null,
-            button2: null,
-            button3: 'Close',
-            index: 0
-          };
-     }, 1000);
-   }
-
-   public showReRouteHintDialog() {
-     setTimeout(() => {
-      const dialogRef = this.dialog.open(DialogComponent, {autoFocus: false});
-      dialogRef.componentInstance.content = {
-            title: '👏 Bravo! You just added the first station!',
-            body: ['Now you go further! 🛣',
-                   'If you are not sure where will be stations, you can also turn on stations heatmap 🔥 from the side bar.',
-                   'Just continue to add more stations along the route! Good luck! 😉',],
-            img: null,
-            button1: null,
-            button2: null,
-            button3: 'Close',
-            index: 0
-          };
-     }, 1000);
-   }
-
-   public showHoverHintDialog() {
-     setTimeout(() => {
-      const dialogRef = this.dialog.open(DialogComponent, {autoFocus: false});
-      dialogRef.componentInstance.content = {
-            title: '🥳 You just discovered the reachable area!',
-            body: ['You can look for charge stations in that area. Now try to click there to see what is there! 😉'],
-            img: null,
-            button1: null,
-            button2: null,
-            button3: 'Close',
-            index: 0
-          };
-     }, 500);
-   }
-
-   public showRouteHintDialog() {
+  public showRestauratHintDialog(): void {
     setTimeout(() => {
-      const dialogRef = this.dialog.open(DialogComponent, {autoFocus: false});
-      dialogRef.componentInstance.content = {
-            title: '🎉 Great! You just got your first route!',
-            body: ['Now try to move you cursor around the highlight route and stay there for a while to see what would happen! 😉',],
-            img: null,
-            button1: null,
-            button2: null,
-            button3: 'Close',
-            index: 0
-          };
+      this.zone.run(() => {
+        const dialogRef = this.dialog.open(DialogComponent, {autoFocus: false});
+        dialogRef.componentInstance.content = {
+          title: '👨‍🍳 Anything interested?',
+          body: ['You can click the center marker to add this station to your route; or just go back to explore more stations! 🕵️‍♂️'],
+          img: null,
+          button1: null,
+          button2: null,
+          button3: 'Close',
+          index: 0
+        };
+      });
+    }, 1000);
+  }
+
+  public showStationHintDialog(): void {
+    setTimeout(() => {
+      this.zone.run(() => {
+        const dialogRef = this.dialog.open(DialogComponent, {autoFocus: false});
+        dialogRef.componentInstance.content = {
+          title: '😱 Those are stations!',
+          body: ['If you see some circle clusters, just click them!',
+            'Now click one station to see if there is any restaurant around! 🍽'],
+          img: null,
+          button1: null,
+          button2: null,
+          button3: 'Close',
+          index: 0
+        };
+      });
+    }, 1000);
+  }
+
+  public showReRouteHintDialog(): void {
+    setTimeout(() => {
+      this.zone.run(() => {
+        const dialogRef = this.dialog.open(DialogComponent, {autoFocus: false});
+        dialogRef.componentInstance.content = {
+          title: '👏 Bravo! You just added the first station!',
+          body: ['Now you go further! 🛣',
+            'If you are not sure where will be stations, you can also turn on stations heatmap 🔥 from the side bar.',
+            'Just continue to add more stations along the route! Good luck! 😉'],
+          img: null,
+          button1: null,
+          button2: null,
+          button3: 'Close',
+          index: 0
+        };
+      });
+    }, 1000);
+  }
+
+  public showHoverHintDialog(): void {
+    setTimeout(() => {
+      this.zone.run(() => {
+        const dialogRef = this.dialog.open(DialogComponent, {autoFocus: false});
+        dialogRef.componentInstance.content = {
+          title: '🥳 You just discovered the reachable area!',
+          body: ['You can look for charge stations in that area. Now try to click there to see what is there! 😉'],
+          img: null,
+          button1: null,
+          button2: null,
+          button3: 'Close',
+          index: 0
+        };
+      });
+    }, 500);
+  }
+
+  public showRouteHintDialog(): void {
+    setTimeout(() => {
+      this.zone.run(() => {
+        const dialogRef = this.dialog.open(DialogComponent, {autoFocus: false});
+        dialogRef.componentInstance.content = {
+          title: '🎉 Great! You just got your first route!',
+          body: ['Now try to move you cursor around the highlight route and stay there for a while to see what would happen! 😉'],
+          img: null,
+          button1: null,
+          button2: null,
+          button3: 'Close',
+          index: 0
+        };
+      });
     }, 0);
-   }
+  }
 }

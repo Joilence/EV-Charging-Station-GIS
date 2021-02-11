@@ -134,19 +134,19 @@ export class DialogComponent {
         dialogRef.componentInstance.content = {
           title: 'Advanced Options',
           body: [
-            "Try out the advanced tab if you want to customize your experience with the app.",
-            "Isochrone Max Range indicates the maximum deroute (in meter) from the road to a charging station.",
-            "The Amenity Distance field indicates the maximum distance from a station to a possible restaurant.",
-            "Keep this value low if you don't want to walk much while your car is on charge!",
-            "Please check your car's battery to know the exact percentage you can achieve with fast charge.",
-            "This value is used to calculate driving time and danger segments (low battery).",
-            "Last, click anytime on Show Tutorial to watch these instructions again.",
-            "Have fun!"
+            'Try out the advanced tab if you want to customize your experience with the app.',
+            'Isochrone Max Range indicates the maximum deroute (in meter) from the road to a charging station.',
+            'The Amenity Distance field indicates the maximum distance from a station to a possible restaurant.',
+            'Keep this value low if you don\'t want to walk much while your car is on charge!',
+            'Please check your car\'s battery to know the exact percentage you can achieve with fast charge.',
+            'This value is used to calculate driving time and danger segments (low battery).',
+            'Last, click anytime on Show Tutorial to watch these instructions again.',
+            'Have fun!'
           ],
           img: 'assets/advanced.png',
           button1: 'Prev',
           button2: null,
-          button3: "Finish",
+          button3: 'Finish',
           index
         };
         break;
