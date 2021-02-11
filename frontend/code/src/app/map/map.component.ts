@@ -238,6 +238,113 @@ export class MapComponent {
    *  #######################################################################
    */
 
+  public bindInteractiveMapEventListener(): void {
+    const wayPoints = this.routingService.getCurrentWayPoints().features;
+    const lastWayPointLocation = wayPoints[wayPoints.length - 2].geometry.coordinates;
+    this.map.on('click', (e: LeafletMouseEvent) => {
+      const loc = e.latlng;
+      if (this.isInCurrentIsochrone(loc.lng, loc.lat)) {
+        return;
+      }
+
+      this.clearHover();
+      // const lastWayPointLatLng = new LatLng(lastWayPointLocation[1], lastWayPointLocation[0])
+      this.dataService.getRoute('driving-car', [lastWayPointLocation, [loc.lng, loc.lat]]).subscribe((route: FeatureCollection) => {
+        console.log('route of click and departure:', route);
+        // TODO: danger segments not accurate
+        const distance = route.features[0].properties!.summary.distance;
+        console.log('Distance to last way point:', distance);
+        const maxDistance = this.currentMaxDistance();
+        if (distance >= maxDistance) {
+          this.showSnackBar(`😰 Sorry, too far away and not reachable. Please select a closer point.`, 2000);
+        } else {
+          console.log('initial search range:', maxDistance - distance);
+          console.log('max search range:', this.routingService.maxStationSearchRange);
+          this.selectDropPoint([loc.lng, loc.lat],
+            Math.min(maxDistance - distance,
+              this.routingService.maxStationSearchRange));
+        }
+      });
+    });
+
+    this.map.on('mousemove', (e: LeafletMouseEvent) => {
+      const loc = e.latlng;
+
+      // clear last hover state
+      this.clearHover();
+
+      if (this.isInCurrentIsochrone(loc.lng, loc.lat)) {
+        return;
+      }
+
+      // start count again
+      this.hoverThread = setTimeout(() => {
+        const loc = e.latlng;
+        console.log('stop at:', e.latlng);
+        this.hoverSubscriptionRoute = this.dataService.getRoute('driving-car', [lastWayPointLocation, [loc.lng, loc.lat]])
+          .subscribe((route: FeatureCollection) => {
+            if (this.hoverCircle) {
+              this.map.removeLayer(this.hoverCircle);
+            }
+            if (this.hoverEffect) {
+              this.map.removeLayer(this.hoverEffect);
+            }
+            // console.log('route of click and departure:', route);
+            // TODO: danger segments not accurate
+
+            const distance = route.features[0].properties!.summary.distance;
+            const maxDistance = this.currentMaxDistance();
+            if (distance <= maxDistance) {
+              const restDistance = Math.min(maxDistance - distance, this.routingService.maxStationSearchRange);
+
+              // Option 1: show circle
+              // const metresPerPixel = 40075016.686 * Math.abs(Math.cos(this.map.getCenter().lat * Math.PI/180)) / Math.pow(2, this.map.getZoom()+8);
+              // const r = restDistance / metresPerPixel;
+              // this.hoverCircle = new Circle(loc, {radius: r*200}).addTo(this.map);
+
+              // Option 2: show isochrone
+              this.dataService.getIsochrones([[loc.lng, loc.lat]], 'distance', [restDistance]).subscribe((isochrones: FeatureCollection<Polygon>) => {
+                this.hoverEffect = new LayerGroup();
+
+                const isochronesJSON = new GeoJSON(isochrones);
+                isochronesJSON.addTo(this.hoverEffect);
+                // Option 3: show route
+                const routeGeoJSON = new GeoJSON(route, {
+                  style: {
+                    color: '#000000',
+                    weight: 8,
+                    opacity: 0.2
+                  },
+                });
+                routeGeoJSON.addTo(this.hoverEffect);
+
+                this.hoverEffect.addTo(this.map);
+
+                this.localStorage.get('hover-hint').subscribe((hoverHint) => {
+                  console.log(hoverHint);
+                  if (hoverHint === undefined) {
+                    this.showHoverHintDialog();
+                  }
+                  this.localStorage.has('hover-hint').subscribe((hoverHint) => {
+                    if (!hoverHint) {
+                      this.localStorage.set('hover-hint', true).subscribe();
+                    }
+                  });
+                });
+              });
+            } else {
+              this.showSnackBar(`😰 Sorry, too far away and not reachable. Please select a closer point.`, 3000);
+            }
+          });
+      }, this.hoverTimeout);
+    });
+  }
+
+  public unbindInteractiveMapEventListener(): void {
+    this.map.off('click');
+    this.map.off('mousemove');
+  }
+
   public addRoutePath(routeObs: Observable<FeatureCollection>): void {
     routeObs.subscribe((route: FeatureCollection) => {
       // console.log('addRoutePath: processed route', route);
@@ -245,110 +352,13 @@ export class MapComponent {
       for (const path of route.features) {
         if (path.properties!.type === 'Danger Segment') {
           isDanger = true;
-          const wayPoints = this.routingService.getCurrentWayPoints().features;
-          const lastWayPointLocation = wayPoints[wayPoints.length - 2].geometry.coordinates;
-          this.map.on('click', (e: LeafletMouseEvent) => {
-            const loc = e.latlng;
-            if (this.isInCurrentIsochrone(loc.lng, loc.lat)) {
-              return;
-            }
-
-            this.clearHover();
-            // const lastWayPointLatLng = new LatLng(lastWayPointLocation[1], lastWayPointLocation[0])
-            this.dataService.getRoute('driving-car', [lastWayPointLocation, [loc.lng, loc.lat]]).subscribe((route: FeatureCollection) => {
-              console.log('route of click and departure:', route);
-              // TODO: danger segments not accurate
-              const distance = route.features[0].properties!.summary.distance;
-              console.log('Distance to last way point:', distance);
-              const maxDistance = this.currentMaxDistance();
-              if (distance >= maxDistance) {
-                this.showSnackBar(`😰 Sorry, too far away and not reachable. Please select a closer point.`, 2000);
-              } else {
-                console.log('initial search range:', maxDistance - distance);
-                console.log('max search range:', this.routingService.maxStationSearchRange);
-                this.selectDropPoint([loc.lng, loc.lat],
-                  Math.min(maxDistance - distance,
-                    this.routingService.maxStationSearchRange));
-              }
-            });
-          });
-
-          this.map.on('mousemove', (e: LeafletMouseEvent) => {
-            const loc = e.latlng;
-
-            // clear last hover state
-            this.clearHover();
-
-            if (this.isInCurrentIsochrone(loc.lng, loc.lat)) {
-              return;
-            }
-
-            // start count again
-            this.hoverThread = setTimeout(() => {
-              const loc = e.latlng;
-              console.log('stop at:', e.latlng);
-              this.hoverSubscriptionRoute = this.dataService.getRoute('driving-car', [lastWayPointLocation, [loc.lng, loc.lat]])
-                .subscribe((route: FeatureCollection) => {
-                  if (this.hoverCircle) {
-                    this.map.removeLayer(this.hoverCircle);
-                  }
-                  if (this.hoverEffect) {
-                    this.map.removeLayer(this.hoverEffect);
-                  }
-                  // console.log('route of click and departure:', route);
-                  // TODO: danger segments not accurate
-
-                  const distance = route.features[0].properties!.summary.distance;
-                  const maxDistance = this.currentMaxDistance();
-                  if (distance <= maxDistance) {
-                    const restDistance = Math.min(maxDistance - distance, this.routingService.maxStationSearchRange);
-
-                    // Option 1: show circle
-                    // const metresPerPixel = 40075016.686 * Math.abs(Math.cos(this.map.getCenter().lat * Math.PI/180)) / Math.pow(2, this.map.getZoom()+8);
-                    // const r = restDistance / metresPerPixel;
-                    // this.hoverCircle = new Circle(loc, {radius: r*200}).addTo(this.map);
-
-                    // Option 2: show isochrone
-                    this.dataService.getIsochrones([[loc.lng, loc.lat]], 'distance', [restDistance]).subscribe((isochrones: FeatureCollection<Polygon>) => {
-                      this.hoverEffect = new LayerGroup();
-
-                      const isochronesJSON = new GeoJSON(isochrones);
-                      isochronesJSON.addTo(this.hoverEffect);
-                      // Option 3: show route
-                      const routeGeoJSON = new GeoJSON(route, {
-                        style: {
-                          color: '#000000',
-                          weight: 8,
-                          opacity: 0.2
-                        },
-                      });
-                      routeGeoJSON.addTo(this.hoverEffect);
-
-                      this.hoverEffect.addTo(this.map);
-
-                      this.localStorage.get('hover-hint').subscribe((hoverHint) => {
-                        console.log(hoverHint);
-                        if (hoverHint === undefined) {
-                          this.showHoverHintDialog();
-                        }
-                        this.localStorage.has('hover-hint').subscribe((hoverHint) => {
-                          if (!hoverHint) {
-                            this.localStorage.set('hover-hint', true).subscribe();
-                          }
-                        });
-                      });
-                    });
-                  } else {
-                    this.showSnackBar(`😰 Sorry, too far away and not reachable. Please select a closer point.`, 3000);
-                  }
-                });
-            }, this.hoverTimeout);
-          });
         }
       }
 
       if (!isDanger) {
         this.showReachHintDialog();
+      } else {
+        this.bindInteractiveMapEventListener();
       }
 
       const styles = (feature: any) => {
