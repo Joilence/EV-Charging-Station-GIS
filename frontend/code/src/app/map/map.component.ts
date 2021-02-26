@@ -13,7 +13,6 @@ import * as d3 from 'd3';
 import '../../../node_modules/leaflet-fa-markers/L.Icon.FontAwesome';
 // @ts-ignore
 import {legend} from './d3-legend';
-// import {booleanContains, Polygon} from '@turf/turf';
 import * as turf from '@turf/turf';
 import {Polygon} from '@turf/turf';
 import {MatSnackBar} from '@angular/material/snack-bar';
@@ -102,7 +101,6 @@ export class MapComponent {
     this.routingService.maxRange = 300000;
     this.routingService.dangerBattery = 0.2;
     this.routingService.amenityRange = 1000;
-    // console.log('map.com: set param to rs.');
     // some settings for a nice shadows, etc.
     const iconRetinaUrl = './assets/marker-icon-2x.png';
     const iconUrl = './assets/marker-icon.png';
@@ -174,9 +172,6 @@ export class MapComponent {
       this.isochronesCache = isochrones;
       this.addIsochrones(isochrones);
     });
-    // this.dataService.getStations([location], [range]).subscribe((stations: FeatureCollection) => {
-    //   this.addStations(stations);
-    // });
     this.dataService.getStationsScore([location], [range], this.routingService.amenityRange)
       .subscribe((stations: FeatureCollection<Point>) => {
         if (stations.features.length === 0) {
@@ -186,13 +181,9 @@ export class MapComponent {
           this.spinnerService.hide();
           this.stationsFeatureCollectionCache = stations;
           this.addStations(stations);
-          // console.log('caching stations: original:', stations);
-          // console.log('caching stations: cache:', this.stationsFeatureCollectionCache);
-          // console.log('caching stations: cache as FeatureCollection:', this.stationsFeatureCollectionCache as FeatureCollection);
           this.updateRestaurantCache(stations);
 
           this.localStorage.get('station-hint').subscribe((stationHint) => {
-            console.log(stationHint);
             if (stationHint === undefined) {
               this.showStationHintDialog();
             }
@@ -217,11 +208,9 @@ export class MapComponent {
   }
 
   public selectStation(station: Feature<Point>): void {
-    // console.log('selectStation: add station to selection:', station);
     this.routingService.addNewStation(station);
     this.route();
     this.localStorage.get('reroute-hint').subscribe((rerouteHint) => {
-      console.log(rerouteHint);
       if (rerouteHint === undefined) {
         this.showReRouteHintDialog();
       }
@@ -249,18 +238,14 @@ export class MapComponent {
       }
 
       this.clearHover();
-      // const lastWayPointLatLng = new LatLng(lastWayPointLocation[1], lastWayPointLocation[0])
       this.dataService.getRoute('driving-car', [lastWayPointLocation, [loc.lng, loc.lat]]).subscribe((route: FeatureCollection) => {
-        console.log('route of click and departure:', route);
-        // TODO: danger segments not accurate
         const distance = route.features[0].properties!.summary.distance;
-        console.log('Distance to last way point:', distance);
         const maxDistance = this.currentMaxDistance();
         if (distance >= maxDistance) {
           this.showSnackBar(`😰 Sorry, too far away and not reachable. Please select a closer point.`, 2000);
         } else {
-          console.log('initial search range:', maxDistance - distance);
-          console.log('max search range:', this.routingService.maxStationSearchRange);
+          //console.log('initial search range:', maxDistance - distance);
+          //console.log('max search range:', this.routingService.maxStationSearchRange);
           this.selectDropPoint([loc.lng, loc.lat],
             Math.min(maxDistance - distance,
               this.routingService.maxStationSearchRange));
@@ -282,7 +267,6 @@ export class MapComponent {
           // start count again
           this.hoverThread = setTimeout(() => {
             const loc = e.latlng;
-            console.log('stop at:', e.latlng);
             this.hoverSubscriptionRoute = this.dataService.getRoute('driving-car', [lastWayPointLocation, [loc.lng, loc.lat]])
               .subscribe((route: FeatureCollection) => {
                 if (this.hoverCircle) {
@@ -291,8 +275,6 @@ export class MapComponent {
                 if (this.hoverEffect) {
                   this.map.removeLayer(this.hoverEffect);
                 }
-                // console.log('route of click and departure:', route);
-                // TODO: danger segments not accurate
 
                 const distance = route.features[0].properties!.summary.distance;
                 const maxDistance = this.currentMaxDistance();
@@ -323,7 +305,6 @@ export class MapComponent {
                     this.hoverEffect.addTo(this.map);
 
                     this.localStorage.get('hover-hint').subscribe((hoverHint) => {
-                      console.log(hoverHint);
                       if (hoverHint === undefined) {
                         this.showHoverHintDialog();
                       }
@@ -351,7 +332,6 @@ export class MapComponent {
 
   public addRoutePath(routeObs: Observable<FeatureCollection>): void {
     routeObs.subscribe((route: FeatureCollection) => {
-      // console.log('addRoutePath: processed route', route);
       let isDanger = false;
       for (const path of route.features) {
         if (path.properties!.type === 'Danger Segment') {
@@ -366,7 +346,6 @@ export class MapComponent {
       }
 
       const styles = (feature: any) => {
-        // console.log(feature);
         switch (feature.properties.type) {
           case 'Whole Route':
             return {
@@ -402,7 +381,6 @@ export class MapComponent {
       });
 
       this.localStorage.get('route-hint').subscribe((routeHint) => {
-        console.log(routeHint);
         if (routeHint === undefined) {
           this.showRouteHintDialog();
         }
@@ -592,21 +570,18 @@ export class MapComponent {
    */
 
   public addIsochrones(isochrones: FeatureCollection): void {
-    // console.log('addIsochrones:', isochrones);
     const isochronesJSON = new GeoJSON(isochrones);
     this.updateIsochronesLayer(isochronesJSON);
   }
 
   public updateIsochronesLayer(isochronesJSON: GeoJSON | undefined): void {
     if (isochronesJSON) {
-      // console.log('update isochrones');
       this.map.removeLayer(this.isochronesLayerGroup);
       this.isochronesLayerGroup = new LayerGroup();
       isochronesJSON.addTo(this.isochronesLayerGroup);
       this.isochronesLayerGroup.addTo(this.map);
       this.map.fitBounds(isochronesJSON.getBounds(), {padding: [100, 100]});
     } else {
-      // console.log('remove isochrones');
       this.map.removeLayer(this.isochronesLayerGroup);
       this.isochronesLayerGroup = new LayerGroup();
     }
@@ -621,7 +596,6 @@ export class MapComponent {
       const polygon = turf.polygon(this.isochronesCache.features[0].geometry.coordinates);
       const point = turf.point([lng, lat]);
       if (turf.booleanContains(polygon, point)) {
-        console.log('inside isochrones');
         return true;
       }
     }
@@ -635,25 +609,16 @@ export class MapComponent {
    */
 
   public getStationFeatureByID(stationID: number): Feature<Point> | undefined {
-    // console.log('looking for stations by id:', this.stationsFeatureCollectionCache);
     for (const station of (this.stationsFeatureCollectionCache as FeatureCollection<Point>).features) {
-      // console.log('check:', station.id as number);
-      // tslint:disable-next-line:triple-equals
       if (station.id as number == stationID) {
-        // console.log(station);
-        // console.log(station as Feature);
         return station;
       }
     }
-    // TODO: correctly handle exception instead of using `undefined`
     console.log(`cannot find station ${stationID} in`, this.stationsFeatureCollectionCache);
     return undefined;
   }
 
   public addStations(stations: FeatureCollection<Point>): void {
-    console.log('addStations:', stations);
-
-    // TODO: [ugly fix]: [lat lng] of station are being changed strangely in map.component
     for (const station of stations.features) {
       let coordinates = station.geometry.coordinates;
       coordinates = Array.from(coordinates, e => parseFloat(String(e)));
@@ -733,7 +698,6 @@ export class MapComponent {
       stationsGeoJSON.addTo(this.stationsLayerGroup);
       this.stationsLayerGroup.addTo(this.map);
     } else {
-      // console.log('remove all stations markers');
       this.map.removeLayer(this.stationsLayerGroup);
       this.stationsLayerGroup = new L.markerClusterGroup({disableClusteringAtZoom: 11});
     }
@@ -743,12 +707,14 @@ export class MapComponent {
     this.updateStationsLayer(undefined);
   }
 
+  /**
+   * Handles click events by filtering global events by id.
+   */
   @HostListener('document:click', ['$event'])
   public popupClicked(event: any): void {
     if (event.target.classList.contains('station-selected-click')) {
       const clickId = parseInt(event.target.id.substr(0, 1), 10);
       const stationId = parseInt(event.target.id.substr(2), 10);
-      console.log(stationId);
       // Full charge.
       if (clickId === 1) {
         if (this.routingService.fastCharge) {
@@ -764,20 +730,15 @@ export class MapComponent {
         }
       }
       this.selectStation(this.getStationFeatureByID(stationId) as Feature<Point>);
-      console.log(`clicked select ${stationId}`);
       return;
     }
     if (event.target.classList.contains('station-show-restaurant-click')) {
       const stationId = parseInt(event.target.id.substr(2), 10);
       this.addRestaurantsByStationID(stationId);
-      console.log(`clicked show restaurants of ${stationId}`);
       return;
     }
     if (event.target.classList.contains('station-show-all-click')) {
-      // const stationId = parseInt(event.target.id.substr(2), 10);
-      // this.addRestaurantsByStationID(stationId);
       this.returnToSeeStations();
-      console.log(`clicked and return to see all stations`);
       return;
     }
   }
@@ -815,24 +776,19 @@ export class MapComponent {
       <div>Name: Not available</div>
       <div>Type: ${amenityType}</div>`;
       }
-      // layer.bindPopup(`${JSON.stringify(feature.properties, null, 2)}`);
       layer.bindPopup(popupHtml);
-      // TODO on click
     };
 
     if (this.restaurantsOfStations && station.id && station.properties && station.geometry.coordinates) {
-      // console.log('add restaurants to:', station.id);
       const restaurants: FeatureCollection = {
         type: 'FeatureCollection',
         features: this.restaurantsOfStations[station.id as string] as Array<Feature>
       };
-      // console.log(restaurants);
       if (restaurants.features === undefined) {
         return;
       }
 
       const showFeaturedRest = this.showFeat;
-      console.log(showFeaturedRest);
       const restaurantsGeoJSON = new GeoJSON(restaurants, {
         onEachFeature, pointToLayer(geoJsonPoint: Feature, latlng: LatLng): Layer {
           if (!showFeaturedRest && geoJsonPoint.properties && geoJsonPoint.properties.amenity && geoJsonPoint.properties.amenity === 'rated_restaurant') {
@@ -874,7 +830,6 @@ export class MapComponent {
       this.updateRestaurantsLayer(restaurantsGeoJSON, stationGeoJSON, station.geometry.coordinates.reverse() as LatLngTuple, amenityRange);
 
       this.localStorage.get('restaurant-hint').subscribe((restaurantHint) => {
-        console.log(restaurantHint);
         if (restaurantHint === undefined) {
           this.showRestauratHintDialog();
         }
@@ -920,7 +875,6 @@ export class MapComponent {
    */
 
   public addWayPoints(wayPoints: FeatureCollection): void {
-    console.log('add way points:', wayPoints);
     const onEachFeature = (feature: Feature<Geometry, any>, layer: Layer) => {
       if (feature.properties.type === 'Departure') {
         this.departureMarker = layer;
@@ -1004,7 +958,6 @@ export class MapComponent {
    */
 
   public cleanCache(): void {
-    console.log('cache clear.');
     this.isochronesCache = undefined;
     this.stationsFeatureCollectionCache = undefined;
     this.restaurantsOfStations = {};
@@ -1012,7 +965,6 @@ export class MapComponent {
 
   public updateRestaurantCache(stations: FeatureCollection<Point>): void {
     this.restaurantsOfStations = {};
-    // console.log(stations);
     for (const station of stations.features) {
       if (station.properties && station.properties.closeRestaurants && station.id) {
         this.restaurantsOfStations[station.id] = station.properties.closeRestaurants;

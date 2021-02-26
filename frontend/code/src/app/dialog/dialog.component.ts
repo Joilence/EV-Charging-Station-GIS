@@ -122,7 +122,7 @@ export class DialogComponent {
             'Some areas might not provide many charging stations yet. It is better to know in advance!',
             'Click on the sidebar icon and show the Heatmap.',
             'You can keep it visible during your journey planning, it can be a useful tool to decide where to travel.'
-        ],
+          ],
           img: 'assets/heatmap.png',
           button1: 'Prev',
           button2: 'Next',

@@ -2,7 +2,7 @@ import {Injectable} from '@angular/core';
 import {HttpClient, HttpHeaders} from '@angular/common/http';
 import {Observable} from 'rxjs';
 import {FeatureCollection, Geometry} from 'geojson';
-import { Polygon } from '@turf/turf';
+import {Polygon} from '@turf/turf';
 
 const httpOptions = {
   headers: new HttpHeaders({

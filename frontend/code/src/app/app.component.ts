@@ -1,5 +1,5 @@
 /// <reference types='leaflet-sidebar-v2' />
-import {AfterViewInit, ApplicationRef, Component, ElementRef, NgZone, ViewChild} from '@angular/core';
+import {AfterViewInit, Component, ElementRef, NgZone, ViewChild} from '@angular/core';
 import {FeatureCollection, Point} from 'geojson';
 import {MapComponent} from './map/map.component';
 import {DataService} from './services/data.service';
@@ -68,10 +68,6 @@ export class AppComponent implements AfterViewInit {
 
   private zeroPad = (num: number, places: number) => String(num).padStart(places, '0');
 
-  /*
-   * Services or other dependencies are often imported via dependency injection.
-   * See https://angular.io/guide/dependency-injection for more details.
-   */
   constructor(private dataService: DataService, private spinnerService: SpinnerOverlayService, private snackBar: MatSnackBar,
               private localStorage: StorageMap, private zone: NgZone) {
   }
@@ -100,7 +96,6 @@ export class AppComponent implements AfterViewInit {
     // this.inputTime.nativeElement.value = new Date().getHours() + ':' + new Date().getMinutes();
 
     this.localStorage.get('tutorial').subscribe((getTut) => {
-      console.log(getTut);
       if (getTut === undefined) {
         this.dialogComponent.startTutorial(0);
       }
@@ -215,7 +210,6 @@ export class AppComponent implements AfterViewInit {
   }
 
   public addHeatMapStationsLayer(): void {
-    console.log(this.map.getZoom());
     this.mapComponent.addStationsHeat(this.radiusHeat, this.maxZoomHeat);
     // this.closeSideBar();
   }

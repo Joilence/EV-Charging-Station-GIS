@@ -16,10 +16,8 @@ export class RoutingService {
   private mapComponent!: MapComponent;
 
   constructor(private dataService: DataService) {
-
   }
 
-  // TODO: TS best practice of getter and setter
   // departure, selected stations, destinations
   public wayPoints: FeatureCollection<Point> = {type: 'FeatureCollection', features: []};
   public numOfSelectedStations = 0;
@@ -42,17 +40,14 @@ export class RoutingService {
     if (station.properties) {
       station.properties.order = 1 + this.numOfSelectedStations++;
 
-      //TODO: [ugly fix]: [lat lng] of station are being changed strangely in map.component
       let coordinates = Array.from(station.geometry.coordinates, e => parseFloat(String(e)));
       if (coordinates[1] < coordinates[0]) {
         coordinates = coordinates.reverse();
       }
       station.geometry.coordinates = coordinates;
-      // console.log('before add:', station.geometry.coordinates);
 
       this.wayPoints.features.push(station);
     }
-    // console.log('new station added:', this.wayPoints);
   }
 
   public initDepDest(locations: FeatureCollection<Point>): void {
@@ -64,7 +59,6 @@ export class RoutingService {
         feature.properties.order = 99;
       }
     });
-    // console.log('processed locations:', locations);
     this.wayPoints = locations;
     this.numOfSelectedStations = 0;
   }
@@ -78,7 +72,6 @@ export class RoutingService {
   }
 
   public handleRoute(featureCollection: FeatureCollection, map: Map, maxRange: number, dangerBattery: number): FeatureCollection {
-    // console.log('handleRoute:', featureCollection);
     let wholeRoute = null;
     try {
       wholeRoute = featureCollection.features[0] as Feature;
@@ -94,11 +87,9 @@ export class RoutingService {
       const wholeRouteDistance = wholeRoute.properties.summary.distance;
 
       // danger segment (ds)
-      // TODO: check every segment instead of only last one
       let isDanger = false;
       const segments = wholeRoute.properties.segments;
       const lastSegmentDistance = segments[segments.length - 1].distance;
-      // console.log('lastSegmentDistance: ', lastSegmentDistance);
       if (lastSegmentDistance > maxRange * (1 - dangerBattery)) {
         isDanger = true;
         const previousSegmentsDistance = wholeRouteDistance - lastSegmentDistance;
@@ -106,18 +97,13 @@ export class RoutingService {
         const dsEndDistance = previousSegmentsDistance + Math.min(maxRange, lastSegmentDistance);
         const dsStartPercent = dsStartDistance / wholeRouteDistance;
         const dsEndPercent = dsEndDistance / wholeRouteDistance;
-        // console.log('previous seg dis:', previousSegmentsDistance);
-        // TODO: ugly code: reverse [lat, lng] for unknown problem; 3 places;
         const dsCors = Array.from(extract(this.map, wholeRouteLine, dsStartPercent, dsEndPercent), (e: LatLng) => {
           return [e.lat, e.lng];
         });
-        // console.log(dsCors);
         const dsLine = new Polyline(dsCors as LatLngExpression[]);
         const dsGeoJSON = dsLine.toGeoJSON();
         dsGeoJSON.geometry.coordinates = dsCors;
         dsGeoJSON.properties.type = 'Danger Segment';
-        // console.log('Danger Segment:', dsGeoJSON);
-        // TODO: ugly code fix
         const ssCors = Array.from(extract(this.map, wholeRouteLine, 0, dsStartPercent), (e: LatLng) => {
           return [e.lat, e.lng];
         });
@@ -132,7 +118,6 @@ export class RoutingService {
 
       // safe segment (ss)
       if (!isDanger) {
-        // TODO: ugly code fix
         const ssGeoJSON = wholeRouteLine.toGeoJSON();
         ssGeoJSON.geometry.coordinates = (wholeRoute.geometry as LineString).coordinates;
         ssGeoJSON.properties.type = 'Safe Segment';
@@ -151,11 +136,8 @@ export class RoutingService {
       }
       return 1;
     });
-    // console.log('getCurrentRoute(): features:', features);
     const locations = Array.from(features, (e: Feature<Point>) => e.geometry.coordinates);
-    // console.log('extract locations for getCurrentRoute():', locations);
     const routeObs = this.dataService.getRoute('driving-car', locations);
-    // console.log('route:', route);
     if (this.wayPoints.features.length === 2) {
       return routeObs.pipe(map((routes) => this.handleRoute(routes, this.map, this.startRange, this.dangerBattery)));
     } else {
