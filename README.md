@@ -78,6 +78,11 @@ now include 4 folders and one .pbf file.
 docker-compose up
 ```
 
+- For first startup:
+	- After all the containers are started (around 3 minutes for the first time), the OpenRouteService has to read the correct configuration file.
+	- Stop the container and all services after full startup.
+	- Run ``docker-compose up`` again to start the container.
+
 Wait some time for the initializaton (around 1-3 minutes).
 
 - If your system is ready, the following GET request should return 'ready':
