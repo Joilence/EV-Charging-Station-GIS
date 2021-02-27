@@ -59,13 +59,18 @@ from [here](https://srtm.csi.cgiar.org/srtmdata/).
 - Clone this repository locally.
 - Extract the ``ors.zip`` file (you downloaded in the previous steps) in the ```./ors``` directory in the root folder of the cloned project. The ```./ors``` directory should
 now include 4 folders and one .pbf file. 
-- Run ``docker-compose up --build`` in the project's root folder to build and start the containers.
-- Now, connect to the database started before. To do so, follow the guide for DBeaver: https://dbeaver.com/docs/wiki/Connect-to-Database/. Database information:
-``ENV POSTGRES_DBNAME="gis_db"``
-``ENV POSTGRES_USER="gis_user"``
-``ENV POSTGRES_PASS="gis_pass"``
+- Run ``docker-compose build`` in the project's root folder to build the images.
+- Run ``docker-compose up database`` to start database container to import data.
+- Now, connect to the database (should be on ``localhost:25432``) started before. To do so, follow the guide for DBeaver: https://dbeaver.com/docs/wiki/Connect-to-Database/. Database information:
+
+	``ENV POSTGRES_DBNAME="gis_db"``
+
+	``ENV POSTGRES_USER="gis_user"``
+
+	``ENV POSTGRES_PASS="gis_pass"``
+
 - Then, use the downloaded SQL dump ``dump-gis_db.sql`` and import it in our database. You may follow the instructions provided here: https://dbeaver.io/forum/viewtopic.php?f=2&t=895.
-- After importing the SQL dump, Everything should be ready in less than 1 min. (If not, restart all containers and execute ``docker-compose up`` again). Further checks and startup information can be found below.
+- After importing the SQL dump, everything should be ready and you can stop the database container. Further checks and startup information can be found below.
 
 ## Startup
 - Start the docker containers with the following command
