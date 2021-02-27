@@ -1,51 +1,73 @@
-# EV Charging Station GIS
+# GIS: Advanced Route Planning of Electric Vehicles based on Charging Stations
 
-A project for GIS lecture, Uni Konstanz.
+A project for GIS lecture, Uni Konstanz, winter term 2020/2021.
 
-This is a GIS application that supports the exploration of EV charging stations in Germany. The EV charging stations are rated by surrounding facilities. 
+This is a GIS application that supports the exploration of Electric Vehicles (EV) charging stations in Germany. The EV charging stations are rated by surrounding facilities. 
 
 # Motivation
 
-- EV is becoming popular
-- The time for charging an EV is significantly longer than refueling a normal car
+- EV is becoming popular.
+- The time for charging an EV is significantly longer than refueling a normal car.
 - Thus, drivers might need to spend some time around, e.g., a cup of coffee in a Café. (No alcohol!)
 
 # Datasets
 
 - [Ladesäulen in Deutschland | Esri Deutschland Open Data Portal](https://opendata-esri-de.opendata.arcgis.com/datasets/esri-de-content::lades%C3%A4ulen-in-deutschland)
-- [Michelin Restaurant scores]()
+- [Michelin Restaurant scores](https://github.com/danmuf/michelin-stars-restaurants-api)
 - [OpenStreetMap Germany](https://download.geofabrik.de/europe/germany-latest.osm.pbf)
 
-NOTE: OSM data must be manually loaded on the database. You can use [osm2pgsql](https://osm2pgsql.org) to perform this operation.
+NOTE: We provide preprocessed data to minimize setup time (see setup section). Nevertheless, if you have time and a good machine you can import the OSM data by yourself and perform the necessary preprocessing by yourself. Therefore, OSM data must be manually loaded on the database. You can use [osm2pgsql](https://osm2pgsql.org) to perform this operation.
 On Windows 
 ```bash
 .\osm2pgsql.exe --database gis_db --host localhost --port 25432 --username gis_user --password --create --slim --drop --latlong --hstore-all germany-latest.osm.pbf
 ```
 
-
-
+Afterwards, execute the SQL script from [here](./assets/amenities.sql) in your database.
 
 
 # Systems
-- Database: PostGIS
+- Database: PostgreSQL with extension PostGIS
 - Backend: Python + Flask
-- Frontend: Javascript + Angular
+- Frontend: TypeScript + Angular
 
-Architecture is running in a Docker Container.
+Architecture is wrapped in a Docker Container.
 
 
-# Prerequisites
+# Setup
 
-As our system relies on [OpenRouteService](https://openrouteservice.org/), we highly recommend to first download the precomputed graphs [here](https://1drv.ms/u/s!AoQ6UBA4h5Orx2jz_8cQIn9gOikl?e=79fJgR).
+The following section describes the process of setting up the system from scratch. Read the following very carefully and execute each of the necessary steps.
+
+## Prerequisites
+
+NOTE: Running this system requires at least 7GB of RAM.
+
+- As our system relies on [OpenRouteService](https://openrouteservice.org/), we highly recommend to first download the precomputed graphs [here](https://drive.google.com/file/d/1biagbMU_D_mvA9sNLpiA3cLz1gfXsGde/view?usp=sharing).
 Remark: If you do not want to download the precomputed graph, you have to manually download the evaluation data for your specified area in the .pbf file
 from [here](https://srtm.csi.cgiar.org/srtmdata/). 
-
-After downloading the zip file from the OneDrive, extract it in the ```/ors``` directory in the root folder of the project. The ```/ors``` directory should
-now include 4 folders and one .pbf file. Now you are able to start the docker container!
-
-More information on ORS can be found [here](https://github.com/GIScience/openrouteservice). Details on the API is provided
+- More information on ORS can be found [here](https://github.com/GIScience/openrouteservice). Details on the API is provided
 [here](https://openrouteservice.org/dev/#/api-docs).
-# Execution
+- We recommend DBeaver (https://dbeaver.io/) as a database tool to connect with our database.
+- Make sure to have Docker installed and running: https://www.docker.com/get-started
+- Please make sure that the ports we use for our systems are free. The used ports can be seen in in the ``docker-compose.yml`` [here](./docker-compose.yml).
+- For this setup guide, we assume the following:
+	- Download of the precomputed graphs for ORS (as mentioned above): https://drive.google.com/file/d/1biagbMU_D_mvA9sNLpiA3cLz1gfXsGde/view?usp=sharing
+	- Download the SQL dump for amenities: https://drive.google.com/file/d/14NlYXJ1h5zXkNO598dTR_cwsEchgs4zr/view?usp=sharing
+
+
+## Installation
+
+- Clone this repository locally.
+- Extract the ``ors.zip`` file (you downloaded in the previous steps) in the ```./ors``` directory in the root folder of the cloned project. The ```./ors``` directory should
+now include 4 folders and one .pbf file. 
+- Run ``docker-compose build`` in the project's root folder to build the container. Afterwards, start only the database by executing ``docker-compose start database``.
+- Now, connect to the database started before. To do so, follow the guide for DBeaver: https://dbeaver.com/docs/wiki/Connect-to-Database/. Database information:
+``ENV POSTGRES_DBNAME="gis_db"``
+``ENV POSTGRES_USER="gis_user"``
+``ENV POSTGRES_PASS="gis_pass"``
+- Then, use the downloaded SQL dump ``dump-gis_db.sql`` and import it in our database. You may follow the instructions provided here: https://dbeaver.io/forum/viewtopic.php?f=2&t=895.
+- After importing the SQL dump, you can finally run ``docker-compose up``. Everything should run now. Further checks and startup information can be found below.
+
+## Startup
 - Start the docker containers with the following command
 ```bash
 docker-compose up
@@ -61,4 +83,4 @@ http://localhost:8080/ors/v2/status
 http://localhost:8080/ors/v2/directions/driving-car?start=9.011155,47.818380&end=10.499955,53.884399
 - If all the checks succeed, your system is ready.
 
-- Open localhost:4200 for some nice frontend interaction. 
+- Open http://localhost:4200 for some nice frontend interaction. 
