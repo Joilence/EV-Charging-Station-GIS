@@ -42,7 +42,7 @@ The following section describes the process of setting up the system from scratc
 NOTE: Running this system requires at least 7GB of RAM.
 
 - As our system relies on [OpenRouteService](https://openrouteservice.org/), we highly recommend to first download the precomputed graphs [here](https://drive.google.com/file/d/1biagbMU_D_mvA9sNLpiA3cLz1gfXsGde/view?usp=sharing).
-Remark: If you do not want to download the precomputed graph, you have to manually download the evaluation data for your specified area in the .pbf file
+Remark: If you do not want to download the precomputed graphs, you have to manually download the evaluation data for your specified area in the .pbf file
 from [here](https://srtm.csi.cgiar.org/srtmdata/). 
 - More information on ORS can be found [here](https://github.com/GIScience/openrouteservice). Details on the API is provided
 [here](https://openrouteservice.org/dev/#/api-docs).
