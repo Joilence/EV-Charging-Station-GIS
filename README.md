@@ -84,3 +84,8 @@ http://localhost:8080/ors/v2/directions/driving-car?start=9.011155,47.818380&end
 - If all the checks succeed, your system is ready.
 
 - Open http://localhost:4200 for some nice frontend interaction. 
+
+# Troubleshooting
+
+If you have problem installing or setting up something, don't hesitate to contact us (firstname.lastname@uni-konstanz.de).
+
