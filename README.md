@@ -59,19 +59,29 @@ from [here](https://srtm.csi.cgiar.org/srtmdata/).
 - Clone this repository locally.
 - Extract the ``ors.zip`` file (you downloaded in the previous steps) in the ```./ors``` directory in the root folder of the cloned project. The ```./ors``` directory should
 now include 4 folders and one .pbf file. 
-- Run ``docker-compose build`` in the project's root folder to build the container. Afterwards, start only the database by executing ``docker-compose start database``.
-- Now, connect to the database started before. To do so, follow the guide for DBeaver: https://dbeaver.com/docs/wiki/Connect-to-Database/. Database information:
-``ENV POSTGRES_DBNAME="gis_db"``
-``ENV POSTGRES_USER="gis_user"``
-``ENV POSTGRES_PASS="gis_pass"``
+- Run ``docker-compose build`` in the project's root folder to build the images.
+- Run ``docker-compose up database`` to start database container to import data.
+- Now, connect to the database (should be on ``localhost:25432``) started before. To do so, follow the guide for DBeaver: https://dbeaver.com/docs/wiki/Connect-to-Database/. Database information:
+
+	``ENV POSTGRES_DBNAME="gis_db"``
+
+	``ENV POSTGRES_USER="gis_user"``
+
+	``ENV POSTGRES_PASS="gis_pass"``
+
 - Then, use the downloaded SQL dump ``dump-gis_db.sql`` and import it in our database. You may follow the instructions provided here: https://dbeaver.io/forum/viewtopic.php?f=2&t=895.
-- After importing the SQL dump, you can finally run ``docker-compose up``. Everything should run now. Further checks and startup information can be found below.
+- After importing the SQL dump, everything should be ready and you can stop the database container. Further checks and startup information can be found below.
 
 ## Startup
 - Start the docker containers with the following command
 ```bash
 docker-compose up
 ```
+
+- For first startup:
+	- After all the containers are started (around 3 minutes for the first time), the OpenRouteService has to read the correct configuration file.
+	- Stop the container and all services after full startup.
+	- Run ``docker-compose up`` again to start the container.
 
 Wait some time for the initializaton (around 1-3 minutes).
 
@@ -84,6 +94,11 @@ http://localhost:8080/ors/v2/directions/driving-car?start=9.011155,47.818380&end
 - If all the checks succeed, your system is ready.
 
 - Open http://localhost:4200 for some nice frontend interaction. 
+
+
+# Report
+
+The report of the project can be found [here](./assets/gis_report.pdf).
 
 # Troubleshooting
 
